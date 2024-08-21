@@ -1,4 +1,18 @@
 import sqlite3
+import os
+import pandas as pd
+
+def cycle_folders(data_directory):
+    folderpaths = []
+    foldernames = []
+    for path, _, _ in os.walk(data_directory):
+        pathlist = path.split(os.sep)
+        if len(pathlist) > 2:
+            if pathlist[-3] == "Data":
+                folderpaths.append(path)
+                foldernames.append(os.path.basename(path))
+    print(folderpaths)
+    print(foldernames)
 
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db():
@@ -36,10 +50,7 @@ def init_db():
                    FolderPath VARCHAR(260)
                    )
                    """)
-    
-
-    
 
 if __name__ == "__main__":
-    init_db()
+    cycle_folders('.\\Data')
 
