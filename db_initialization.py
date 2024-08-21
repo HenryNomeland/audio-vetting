@@ -15,30 +15,32 @@ def cycle_folders(data_directory):
 def init_db(data_folder = "Data", overwrite_db = False):
     conn = sqlite3.connect("prp.db")
     cursor = conn.cursor()
-
-    if overwrite_db:
-        table_create = "CREATE TABLE IF NOT EXISTS"
-    else:
-        table_create = "CREATE TABLE"
+    drop_table = ""
 
     # Creating the Files table which includes every file, their assignments, and their status
+    tablename = "Files"
+    if overwrite_db:
+        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(f"""
-                   {table_create} Files (
+                   CREATE TABLE IF NOT EXISTS {tablename} (
                    FileID INTEGER PRIMARY KEY,
                    StudentID INT,
-                   FolderID INT,
+                   FolderName VARCHAR(50),
                    FileName VARCHAR(50) NOT NULL,
                    FilePath VARCHAR(260) NOT NULL,
                    FileType VARCHAR(10) NOT NULL,
                    FileStatus VARCHAR(20) DEFAULT "Incomplete" NOT NULL,
                    FOREIGN KEY (StudentID) REFERENCES Students (StudentID)
-                   FOREIGN KEY (FolderID) REFERENCES Folders (FolderID)
+                   FOREIGN KEY (FolderName) REFERENCES Folders (FolderName)
                    )
                    """)
     
     # Creating the Student table which includes every student that is assigned to files
+    tablename = "Students"
+    if overwrite_db:
+        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(f"""
-                   {table_create} Students (
+                   CREATE TABLE IF NOT EXISTS {tablename} (
                    StudentID INTEGER PRIMARY KEY,
                    StudentName VARCHAR(50),
                    StudentType VARCHAR(50)
@@ -46,32 +48,44 @@ def init_db(data_folder = "Data", overwrite_db = False):
                    """)
     
     # Creating the Folders table which includes every folder representing a child in the dataset
+    tablename = "Folders"
+    if overwrite_db:
+        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(f"""
-                   {table_create} Folders (
-                   FolderID INTEGER PRIMARY KEY,
+                   CREATE TABLE IF NOT EXISTS {tablename} (
+                   FolderName VARCHAR(50) PRIMARY KEY,
                    TotalFiles INT NOT NULL,
-                   FolderName VARCHAR(50),
                    FolderPath VARCHAR(260)
                    )
                    """)
     
     for folderpath in cycle_folders(data_folder):
         foldername = os.path.basename(folderpath)
+        totalfiles = 0
+        for path, _, files in os.walk(folderpath):
+            totalfiles += len(files)
+            for filename in files:
+                filepath = os.path.join(path, filename)
+                # If the file isn't in the database this inserts the folder into the database
+                cursor.execute(f"""
+                    SELECT exists(SELECT 1 FROM Files WHERE FileName = '{filename}') AS row_exists;
+                    """
+                )
+                if cursor.fetchall()[0][0] == 0:
+                    cursor.execute(f"""
+                    INSERT INTO Files (FolderName, FileName, FilePath, FileType) VALUES ('{foldername}', '{filename}', '{filepath}', '{os.path.basename(filepath).split(" ")[0]}')
+                    """
+                    )
+        # If the folder isn't in the database this inserts the folder into the database
         cursor.execute(f"""
             SELECT exists(SELECT 1 FROM Folders WHERE FolderName = '{foldername}') AS row_exists;
             """
         )
-        totalfiles = 0
-        for _, _, files in os.walk(folderpath):
-            totalfiles += len(files)
         if cursor.fetchall()[0][0] == 0:
             cursor.execute(f"""
             INSERT INTO Folders (TotalFiles, FolderName, FolderPath) VALUES ('{totalfiles}', '{foldername}', '{folderpath}')
             """
             )
-    
-    rows = cursor.execute("SELECT FolderID, FolderName FROM Folders").fetchall()
-    print(rows)
 
     conn.commit()
     cursor.close()
