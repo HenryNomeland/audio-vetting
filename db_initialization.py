@@ -40,8 +40,8 @@ def init_db(data_folder = "Data", overwrite_db = False):
                    FilePath VARCHAR(260) NOT NULL,
                    FileType VARCHAR(10) NOT NULL,
                    FileStatus VARCHAR(20) DEFAULT "Incomplete" NOT NULL,
-                   FOREIGN KEY (WorkerID) REFERENCES Workers (WorkerID)
-                   FOREIGN KEY (FolderID) REFERENCES Folders (FolderID)
+                   FOREIGN KEY (WorkerID) REFERENCES Workers (WorkerID) ON DELETE SET NULL
+                   FOREIGN KEY (FolderID) REFERENCES Folders (FolderID) ON DELETE CASCADE
                    )
                    """)
     

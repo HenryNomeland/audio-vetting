@@ -26,3 +26,29 @@ def assign_folders(folderID_list, workerID):
                        WHERE FolderID = ?
                        """, (workerID, folderID))
     commit_conn(conn, cursor)
+
+def file_complete(fileID):
+    conn, cursor = make_conn()
+    cursor.execute("""
+                   UPDATE Files
+                   SET FileStatus = 'Complete'
+                   WHERE fileID = ?
+                   """, (fileID))
+    commit_conn(conn, cursor)
+
+def file_flag(fileID):
+    conn, cursor = make_conn()
+    cursor.execute("""
+                   UPDATE Files
+                   SET FileStatus = 'Flagged'
+                   WHERE fileID = ?
+                   """, (fileID))
+    commit_conn(conn, cursor)
+
+def clear_assignments(workerID):
+    conn, cursor = make_conn()
+    cursor.execute("""
+                   UPDATES Files
+                   SET WorkerID = NULL
+                   WHERE WorkerID = ?
+                   """, (workerID, ))
