@@ -52,3 +52,4 @@ def clear_assignments(workerID):
                    SET WorkerID = NULL
                    WHERE WorkerID = ?
                    """, (workerID, ))
+    commit_conn(conn, cursor)
