@@ -3,25 +3,6 @@ import os
 import pandas as pd
 from db_updates import *   
 
-def make_conn():
-    conn = sqlite3.connect("prp.db")
-    return conn, conn.cursor()
-
-def commit_conn(conn, cursor):
-    conn.commit()
-    cursor.close()
-    if conn:
-        conn.close()
-
-def cycle_folders(data_directory):
-    folderpaths = []
-    for path, _, _ in os.walk(data_directory):
-        pathlist = path.split(os.sep)
-        if len(pathlist) > 2:
-            if pathlist[-3] == os.path.basename(data_directory):
-                folderpaths.append(path)
-    return(folderpaths)
-
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db(data_folder = "Data", overwrite_db = False):
     conn, cursor = make_conn()
@@ -40,7 +21,8 @@ def init_db(data_folder = "Data", overwrite_db = False):
                    FilePath VARCHAR(260) NOT NULL,
                    FileType VARCHAR(10) NOT NULL,
                    FileStatus VARCHAR(20) DEFAULT "Incomplete" NOT NULL,
-                   FOREIGN KEY (WorkerID) REFERENCES Workers (WorkerID) ON DELETE SET NULL
+                   Comments VARCHAR(100),
+                   FOREIGN KEY (WorkerID) REFERENCES Workers (WorkerID) ON DELETE SET NULL,
                    FOREIGN KEY (FolderID) REFERENCES Folders (FolderID) ON DELETE CASCADE
                    )
                    """)

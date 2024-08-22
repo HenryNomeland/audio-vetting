@@ -1,5 +1,25 @@
-from db_initialization import make_conn, commit_conn
+import sqlite3
+import os
 
+def make_conn():
+    conn = sqlite3.connect("prp.db")
+    return conn, conn.cursor()
+
+def commit_conn(conn, cursor):
+    conn.commit()
+    cursor.close()
+    if conn:
+        conn.close()
+
+def cycle_folders(data_directory):
+    folderpaths = []
+    for path, _, _ in os.walk(data_directory):
+        pathlist = path.split(os.sep)
+        if len(pathlist) > 2:
+            if pathlist[-3] == os.path.basename(data_directory):
+                folderpaths.append(path)
+    return(folderpaths)
+    
 def add_worker(name, type):
     conn, cursor = make_conn()
     cursor.execute("""
@@ -52,4 +72,13 @@ def clear_assignments(workerID):
                    SET WorkerID = NULL
                    WHERE WorkerID = ?
                    """, (workerID, ))
+    commit_conn(conn, cursor)
+    
+def update_comments(comment, fileID):
+    conn, cursor = make_conn()
+    cursor.execute("""
+                   UPDATE Files
+                   SET Comments = ?
+                   WHERE fileID = ?
+                   """, (comment, fileID))
     commit_conn(conn, cursor)
