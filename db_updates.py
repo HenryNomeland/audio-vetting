@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 def make_conn():
-    conn = sqlite3.connect("prp.db")
+    conn = sqlite3.connect("audio.db")
     return conn, conn.cursor()
 
 def commit_conn(conn, cursor):

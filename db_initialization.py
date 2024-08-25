@@ -75,7 +75,7 @@ def init_db(data_folder = "Data", overwrite_db = False):
                     SELECT FolderID FROM Folders WHERE FolderName = ?
                     """, (foldername, ))
                 folderID = cursor.fetchone()[0]
-                filetype = filepath.split(os.sep)[-1].split(" ")[0]
+                filetype = filepath.split(os.sep)[-2].split(" ")[0]
                 cursor.execute("""
                     SELECT exists(SELECT 1 FROM Files WHERE FileName = ?) AS row_exists
                     """, (filename, ))
