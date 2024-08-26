@@ -31,21 +31,21 @@ def gen_specific_worker_table(workerID=1):
             "sqlite",
             "audio.db",
             statement=f"""
-                                SELECT FileName, FileStatus, Comments
-                                FROM Files
-                                WHERE WorkerID = {workerID}
-                                """,
+                       SELECT FileName, FileStatus, Comments
+                       FROM Files
+                       WHERE WorkerID = {workerID}
+                       """,
         )
     else:
         filteredSQL = SQLDataTable(
             "sqlite",
             "audio.db",
             statement=f"""
-                                SELECT Files.FileName, Files.FileStatus, Files.Comments
-                                FROM Files
-                                LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                                WHERE WorkerName = {workerID}
-                                """,
+                       SELECT Files.FileName, Files.FileStatus, Files.Comments
+                       FROM Files
+                       LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                       WHERE WorkerName = {workerID}
+                       """,
         )
     return filteredSQL.datatable
 
@@ -67,29 +67,29 @@ def application(page: ft.Page):
         "sqlite",
         "audio.db",
         statement="""
-                           SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
-                           FROM Files
-                           LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
-                           LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                           """,
+                  SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
+                  FROM Files
+                  LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
+                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                  """,
     )
     folderSQL = SQLDataTable(
         "sqlite",
         "audio.db",
         statement="""
-                             SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath
-                             FROM Folders
-                             """,
+                  SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath
+                  FROM Folders
+                  """,
     )
     workerSQL = SQLDataTable(
         "sqlite",
         "audio.db",
         statement="""
-                             SELECT Workers.WorkerName, Workers.WorkerType, COUNT(Files.FileName) AS FileCount
-                             FROM Files
-                             LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                             GROUP BY Workers.WorkerName, Workers.WorkerType
-                             """,
+                  SELECT Workers.WorkerName, Workers.WorkerType, COUNT(Files.FileName) AS FileCount
+                  FROM Files
+                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                  GROUP BY Workers.WorkerName, Workers.WorkerType
+                  """,
     )
 
     workers_tab = ft.Column([workerSQL.datatable], tight=True, scroll="auto")
