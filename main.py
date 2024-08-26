@@ -92,9 +92,6 @@ def application(page: ft.Page):
                   """,
     )
 
-    workers_tab = ft.Column([workerSQL.datatable], tight=True, scroll="auto")
-    files_tab = ft.Column([fileSQL.datatable], tight=True, scroll="auto")
-    folders_tab = ft.Column([folderSQL.datatable], tight=True, scroll="auto")
     vetting_dropdown = ft.Dropdown(
         width=250,
         options=generate_dropdown_options(),
@@ -106,6 +103,41 @@ def application(page: ft.Page):
     )
     vetting_tab = ft.Column(
         [vetting_row, gen_specific_worker_table()], tight=True, scroll="auto"
+    )
+    files_tab = ft.Column([fileSQL.datatable], tight=True, scroll="auto")
+    folders_tab = ft.Column([folderSQL.datatable], tight=True, scroll="auto")
+
+    def workerButtonClick(e):
+        if (workerTF1.value != "") and (workerTF2.value != ""):
+            add_worker(workerTF1.value, workerTF2.value)
+
+    workerTF1 = ft.TextField(label="New Worker Name")
+    workerTF2 = ft.TextField(label="New Worker Type")
+    workers_table = ft.Column(
+        [workerSQL.datatable],
+        tight=True,
+        scroll="auto",
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+    )
+    workers_controls = ft.Column(
+        [
+            workerTF1,
+            workerTF2,
+            ft.ElevatedButton(text="Add Worker", on_click=workerButtonClick),
+        ],
+        tight=True,
+        scroll="auto",
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+    )
+    workers_tab = ft.Row(
+        [workers_table, workers_controls],
+        alignment=ft.MainAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=30,
     )
 
     tabs = ft.Tabs(
@@ -127,13 +159,13 @@ def application(page: ft.Page):
             ft.Tab(
                 text="All Folders",
                 content=ft.Container(
-                    content=folders_tab, alignment=ft.alignment.top_center, padding=20
+                    content=folders_tab, alignment=ft.alignment.center, padding=20
                 ),
             ),
             ft.Tab(
                 text="All Workers",
                 content=ft.Container(
-                    content=workers_tab, alignment=ft.alignment.top_center, padding=20
+                    content=workers_tab, alignment=ft.alignment.center, padding=20
                 ),
             ),
         ],
