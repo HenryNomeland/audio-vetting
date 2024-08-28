@@ -4,6 +4,7 @@ import threading
 from db_initialization import init_db
 from simpledt import SQLDataTable
 from db_updates import *
+from dt_updates import *
 
 
 def main(page: ft.Page):
@@ -23,39 +24,6 @@ def main(page: ft.Page):
         application(page)
 
     threading.Thread(target=update_sqliteDB).start()
-
-
-def gen_specific_worker_table(workerID=1):
-    if type(workerID) is int:
-        filteredSQL = SQLDataTable(
-            "sqlite",
-            "audio.db",
-            statement=f"""
-                       SELECT FileName, FileStatus, Comments
-                       FROM Files
-                       WHERE WorkerID = {workerID}
-                       """,
-        )
-    else:
-        filteredSQL = SQLDataTable(
-            "sqlite",
-            "audio.db",
-            statement=f"""
-                       SELECT Files.FileName, Files.FileStatus, Files.Comments
-                       FROM Files
-                       LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                       WHERE WorkerName = {workerID}
-                       """,
-        )
-    return filteredSQL.datatable
-
-
-def generate_dropdown_options():
-    conn, cursor = make_conn()
-    conn.row_factory = lambda cursor, row: row[0]
-    worker_list = cursor.execute("SELECT WorkerName FROM Workers").fetchall()
-    commit_conn(conn, cursor)
-    return worker_list
 
 
 def application(page: ft.Page):
@@ -85,42 +53,91 @@ def application(page: ft.Page):
         "sqlite",
         "audio.db",
         statement="""
-                  SELECT Workers.WorkerName, Workers.WorkerType, COUNT(Files.FileName) AS FileCount
-                  FROM Files
-                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                  GROUP BY Workers.WorkerName, Workers.WorkerType
+                  SELECT Workers.WorkerName, Workers.WorkerType
+                  FROM Workers
                   """,
     )
 
-    vetting_dropdown = ft.Dropdown(
-        width=250,
-        options=generate_dropdown_options(),
-        on_change=lambda x: gen_specific_worker_table(x.control.value),
-    )
+    vetting_dropdown = create_worker_dropdown()
     vetting_row = ft.Row(
         controls=[ft.Text("Select Worker:"), vetting_dropdown],
         alignment=ft.MainAxisAlignment.START,
     )
-    vetting_tab = ft.Column(
-        [vetting_row, gen_specific_worker_table()], tight=True, scroll="auto"
-    )
+    vetting_tab = ft.Column([vetting_row], tight=True, scroll="auto")
     files_tab = ft.Column([fileSQL.datatable], tight=True, scroll="auto")
     folders_tab = ft.Column([folderSQL.datatable], tight=True, scroll="auto")
 
     def workerButtonClick(e):
         if (workerTF1.value != "") and (workerTF2.value != ""):
             add_worker(workerTF1.value, workerTF2.value)
+            new_workerSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                      SELECT Workers.WorkerName, Workers.WorkerType
+                      FROM Workers
+                      """,
+            )
 
-    workerTF1 = ft.TextField(label="New Worker Name")
-    workerTF2 = ft.TextField(label="New Worker Type")
+        workers_table.controls[0] = add_delete_column(
+            new_workerSQL.datatable, delete_and_refresh_workers
+        )
+        page.update()
+        vetting_dropdown.options = [
+            ft.dropdown.Option(name) for name in generate_dropdown_options()
+        ]
+        page.update()
+
+        workerTF1.value = ""
+        workerTF2.value = ""
+        page.update()
+
+    def add_delete_column(data_table, delete_function):
+        new_columns = data_table.columns.copy()
+        new_rows = data_table.rows.copy()
+        new_columns.append(ft.DataColumn(ft.Text("Delete")))
+        updated_rows = []
+        for row in new_rows:
+            delete_button = ft.IconButton(
+                icon=ft.icons.DELETE,
+                icon_color="red",
+                on_click=lambda e, name=row.cells[0].content.value: delete_function(
+                    name
+                ),
+            )
+            updated_row = row.cells + [ft.DataCell(delete_button)]
+            updated_rows.append(ft.DataRow(cells=updated_row))
+        new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
+        return new_data_table
+
+    def delete_and_refresh_workers(worker_name):
+        delete_worker(worker_name)
+        new_workerSQL = SQLDataTable(
+            "sqlite",
+            "audio.db",
+            statement="""
+                    SELECT Workers.WorkerName, Workers.WorkerType
+                    FROM Workers
+                    """,
+        )
+        workers_table.controls[0] = add_delete_column(
+            new_workerSQL.datatable, delete_and_refresh_workers
+        )
+        vetting_dropdown.options = [
+            ft.dropdown.Option(name) for name in generate_dropdown_options()
+        ]
+        page.update()
+
     workers_table = ft.Column(
-        [workerSQL.datatable],
+        [add_delete_column(workerSQL.datatable, delete_and_refresh_workers)],
         tight=True,
         scroll="auto",
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=20,
     )
+    workerTF1 = ft.TextField(label="New Worker Name")
+    workerTF2 = ft.TextField(label="New Worker Type")
     workers_controls = ft.Column(
         [
             workerTF1,

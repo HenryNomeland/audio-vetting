@@ -113,3 +113,17 @@ def update_comments(comment, fileID):
         (comment, fileID),
     )
     commit_conn(conn, cursor)
+
+
+def generate_dropdown_options():
+    conn, cursor = make_conn()
+    cursor.execute("SELECT WorkerName FROM Workers")
+    worker_list = [row[0] for row in cursor.fetchall()]
+    commit_conn(conn, cursor)
+    return worker_list
+
+
+def delete_worker(worker_name):
+    conn, cursor = make_conn()
+    cursor.execute("DELETE FROM Workers WHERE WorkerName = ?", (worker_name,))
+    commit_conn(conn, cursor)

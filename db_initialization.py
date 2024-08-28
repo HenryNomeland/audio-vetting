@@ -38,7 +38,7 @@ def init_db(data_folder="Data", overwrite_db=False):
         f"""
          CREATE TABLE IF NOT EXISTS {tablename} (
          WorkerID INTEGER PRIMARY KEY,
-         WorkerName VARCHAR(50),
+         WorkerName VARCHAR(50) UNIQUE,
          WorkerType VARCHAR(50)
          )
          """
