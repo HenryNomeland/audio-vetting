@@ -45,8 +45,18 @@ def application(page: ft.Page):
         "sqlite",
         "audio.db",
         statement="""
-                  SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath
+                  SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
+                  CASE 
+                      WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
+                      ELSE ''
+                  END AS WorkerName
                   FROM Folders
+                  LEFT JOIN Files ON Folders.FolderID = Files.FolderID
+                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                  GROUP BY 
+                      Folders.FolderName, 
+                      Folders.TotalFiles, 
+                      Folders.FolderPath
                   """,
     )
     workerSQL = SQLDataTable(
@@ -58,14 +68,148 @@ def application(page: ft.Page):
                   """,
     )
 
-    vetting_dropdown = create_worker_dropdown()
+    worker_dropdown = create_worker_dropdown()
     vetting_row = ft.Row(
-        controls=[ft.Text("Select Worker:"), vetting_dropdown],
+        controls=[ft.Text("Select Worker:"), worker_dropdown],
         alignment=ft.MainAxisAlignment.START,
     )
     vetting_tab = ft.Column([vetting_row], tight=True, scroll="auto")
-    files_tab = ft.Column([fileSQL.datatable], tight=True, scroll="auto")
-    folders_tab = ft.Column([folderSQL.datatable], tight=True, scroll="auto")
+
+    def fileButtonClick(e):
+        if worker_dropdown.value != "":
+            filelist = []
+            for row in files_table.controls[0].rows:
+                if row.cells[6].content.value:
+                    filelist.append(row.cells[1].content.value)
+            update_file_assignments(worker_dropdown.value, filelist)
+            new_fileSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                        SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
+                        FROM Files
+                        LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
+                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                        """,
+            )
+            new_folderSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                        SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
+                        CASE 
+                            WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
+                            ELSE ''
+                        END AS WorkerName
+                        FROM Folders
+                        LEFT JOIN Files ON Folders.FolderID = Files.FolderID
+                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                        GROUP BY 
+                            Folders.FolderName, 
+                            Folders.TotalFiles, 
+                            Folders.FolderPath
+                        """,
+            )
+
+            files_table.controls[0] = add_check_column(new_fileSQL.datatable)
+            page.update()
+
+            folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
+            page.update()
+
+            worker_dropdown.value = ""
+            page.update()
+
+    files_table = ft.Column(
+        [add_check_column(fileSQL.datatable)], tight=True, scroll="auto"
+    )
+    files_controls = ft.Column(
+        [
+            worker_dropdown,
+            ft.ElevatedButton(
+                text="Assign Selected to Worker", on_click=fileButtonClick
+            ),
+        ],
+        tight=True,
+        scroll="auto",
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+    )
+    files_tab = ft.Row(
+        [files_table, files_controls],
+        alignment=ft.MainAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=30,
+    )
+
+    def folderButtonClick(e):
+        if worker_dropdown.value != "":
+            folderlist = []
+            for row in folders_table.controls[0].rows:
+                if row.cells[4].content.value:
+                    folderlist.append(row.cells[2].content.value)
+            update_folder_assignments(worker_dropdown.value, folderlist)
+            new_fileSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                        SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
+                        FROM Files
+                        LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
+                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                        """,
+            )
+            new_folderSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                        SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
+                        CASE 
+                            WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
+                            ELSE ''
+                        END AS WorkerName
+                        FROM Folders
+                        LEFT JOIN Files ON Folders.FolderID = Files.FolderID
+                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                        GROUP BY 
+                            Folders.FolderName, 
+                            Folders.TotalFiles, 
+                            Folders.FolderPath
+                        """,
+            )
+
+            files_table.controls[0] = add_check_column(new_fileSQL.datatable)
+            page.update()
+
+            folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
+            page.update()
+
+            worker_dropdown.value = ""
+            page.update()
+
+    folders_table = ft.Column(
+        [add_check_column(folderSQL.datatable)], tight=True, scroll="auto"
+    )
+    folders_controls = ft.Column(
+        [
+            worker_dropdown,
+            ft.ElevatedButton(
+                text="Assign Selected to Worker", on_click=folderButtonClick
+            ),
+        ],
+        tight=True,
+        scroll="auto",
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+    )
+    folders_tab = ft.Row(
+        [folders_table, folders_controls],
+        alignment=ft.MainAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=30,
+    )
 
     def workerButtonClick(e):
         if (workerTF1.value != "") and (workerTF2.value != ""):
@@ -83,7 +227,7 @@ def application(page: ft.Page):
             new_workerSQL.datatable, delete_and_refresh_workers
         )
         page.update()
-        vetting_dropdown.options = [
+        worker_dropdown.options = [
             ft.dropdown.Option(name) for name in generate_dropdown_options()
         ]
         page.update()
@@ -91,24 +235,6 @@ def application(page: ft.Page):
         workerTF1.value = ""
         workerTF2.value = ""
         page.update()
-
-    def add_delete_column(data_table, delete_function):
-        new_columns = data_table.columns.copy()
-        new_rows = data_table.rows.copy()
-        new_columns.append(ft.DataColumn(ft.Text("Delete")))
-        updated_rows = []
-        for row in new_rows:
-            delete_button = ft.IconButton(
-                icon=ft.icons.DELETE,
-                icon_color="red",
-                on_click=lambda e, name=row.cells[0].content.value: delete_function(
-                    name
-                ),
-            )
-            updated_row = row.cells + [ft.DataCell(delete_button)]
-            updated_rows.append(ft.DataRow(cells=updated_row))
-        new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
-        return new_data_table
 
     def delete_and_refresh_workers(worker_name):
         def close_dlg(e):
@@ -127,7 +253,7 @@ def application(page: ft.Page):
             workers_table.controls[0] = add_delete_column(
                 new_workerSQL.datatable, delete_and_refresh_workers
             )
-            vetting_dropdown.options = [
+            worker_dropdown.options = [
                 ft.dropdown.Option(name) for name in generate_dropdown_options()
             ]
             page.update()

@@ -127,3 +127,55 @@ def delete_worker(worker_name):
     conn, cursor = make_conn()
     cursor.execute("DELETE FROM Workers WHERE WorkerName = ?", (worker_name,))
     commit_conn(conn, cursor)
+
+
+def update_folder_assignments(worker_name, folderlist):
+    conn, cursor = make_conn()
+    cursor.execute("SELECT WorkerID FROM Workers WHERE WorkerName = ?", (worker_name,))
+    worker_id = cursor.fetchall()[0][0]
+    print(worker_name)
+    print(worker_id)
+    cursor.execute(
+        f"""
+         SELECT FolderID
+         FROM Folders 
+         WHERE FolderPath IN ({','.join(['?'] * len(folderlist))})
+         """,
+        folderlist,
+    )
+    folder_ids = [row[0] for row in cursor.fetchall()]
+    print(folderlist)
+    print(folder_ids)
+    cursor.execute(
+        f"""
+         UPDATE Files
+         SET WorkerID = '{worker_id}' 
+         WHERE FolderID IN ({','.join(['?'] * len(folder_ids))})
+         """,
+        folder_ids,
+    )
+    commit_conn(conn, cursor)
+
+
+def update_file_assignments(worker_name, filelist):
+    conn, cursor = make_conn()
+    cursor.execute("SELECT WorkerID FROM Workers WHERE WorkerName = ?", (worker_name,))
+    worker_id = cursor.fetchall()[0][0]
+    cursor.execute(
+        f"""
+         SELECT FileID 
+         FROM Files 
+         WHERE FileName IN ({','.join(['?'] * len(filelist))})
+         """,
+        filelist,
+    )
+    file_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(
+        f"""
+         UPDATE Files
+         SET WorkerID = '{worker_id}' 
+         WHERE FileID IN ({','.join(['?'] * len(file_ids))})
+         """,
+        file_ids,
+    )
+    commit_conn(conn, cursor)
