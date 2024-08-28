@@ -111,22 +111,42 @@ def application(page: ft.Page):
         return new_data_table
 
     def delete_and_refresh_workers(worker_name):
-        delete_worker(worker_name)
-        new_workerSQL = SQLDataTable(
-            "sqlite",
-            "audio.db",
-            statement="""
-                    SELECT Workers.WorkerName, Workers.WorkerType
-                    FROM Workers
-                    """,
+        def close_dlg(e):
+            page.close(delete_worker_dialog)
+
+        def execute_deletion(e):
+            delete_worker(worker_name)
+            new_workerSQL = SQLDataTable(
+                "sqlite",
+                "audio.db",
+                statement="""
+                        SELECT Workers.WorkerName, Workers.WorkerType
+                        FROM Workers
+                        """,
+            )
+            workers_table.controls[0] = add_delete_column(
+                new_workerSQL.datatable, delete_and_refresh_workers
+            )
+            vetting_dropdown.options = [
+                ft.dropdown.Option(name) for name in generate_dropdown_options()
+            ]
+            page.update()
+            close_dlg(e)
+
+        delete_worker_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Warning!"),
+            content=ft.Text(
+                "Warning: Deleting a worker will result in losing all of their assignment info!\n\
+                            Are you sure that you want to continue?"
+            ),
+            actions=[
+                ft.TextButton("Yes", on_click=execute_deletion),
+                ft.TextButton("No", on_click=close_dlg),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
         )
-        workers_table.controls[0] = add_delete_column(
-            new_workerSQL.datatable, delete_and_refresh_workers
-        )
-        vetting_dropdown.options = [
-            ft.dropdown.Option(name) for name in generate_dropdown_options()
-        ]
-        page.update()
+        page.open(delete_worker_dialog)
 
     workers_table = ft.Column(
         [add_delete_column(workerSQL.datatable, delete_and_refresh_workers)],
