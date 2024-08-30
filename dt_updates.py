@@ -39,3 +39,22 @@ def add_delete_column(data_table, delete_function):
         updated_rows.append(ft.DataRow(cells=updated_row))
     new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
     return new_data_table
+
+
+def add_edit_column(data_table, edit_function):
+    new_columns = data_table.columns.copy()
+    new_rows = data_table.rows.copy()
+    new_columns.append(ft.DataColumn(ft.Text("Edit")))
+    updated_rows = []
+    for row in new_rows:
+        delete_button = ft.IconButton(
+            icon=ft.icons.EDIT,
+            icon_color="blue",
+            on_click=lambda e, filename=row.cells[0].content.value: edit_function(
+                filename
+            ),
+        )
+        updated_row = row.cells + [ft.DataCell(delete_button)]
+        updated_rows.append(ft.DataRow(cells=updated_row))
+    new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
+    return new_data_table

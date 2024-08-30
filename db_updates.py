@@ -102,15 +102,15 @@ def clear_assignments(workerID):
     commit_conn(conn, cursor)
 
 
-def update_comments(comment, fileID):
+def update_comments(filename, comments):
     conn, cursor = make_conn()
     cursor.execute(
         """
         UPDATE Files
         SET Comments = ?
-        WHERE fileID = ?
+        WHERE FileName = ?
         """,
-        (comment, fileID),
+        (comments, filename),
     )
     commit_conn(conn, cursor)
 
@@ -133,8 +133,6 @@ def update_folder_assignments(worker_name, folderlist):
     conn, cursor = make_conn()
     cursor.execute("SELECT WorkerID FROM Workers WHERE WorkerName = ?", (worker_name,))
     worker_id = cursor.fetchall()[0][0]
-    print(worker_name)
-    print(worker_id)
     cursor.execute(
         f"""
          SELECT FolderID
@@ -144,8 +142,6 @@ def update_folder_assignments(worker_name, folderlist):
         folderlist,
     )
     folder_ids = [row[0] for row in cursor.fetchall()]
-    print(folderlist)
-    print(folder_ids)
     cursor.execute(
         f"""
          UPDATE Files

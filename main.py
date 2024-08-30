@@ -5,6 +5,7 @@ from db_initialization import init_db
 from simpledt import SQLDataTable
 from db_updates import *
 from dt_updates import *
+from vetting_tab import *
 
 
 def main(page: ft.Page):
@@ -31,20 +32,13 @@ def application(page: ft.Page):
     page.window.height = None
     page.window.width = None
     page.window.maximized = True
-    fileSQL = SQLDataTable(
-        "sqlite",
-        "audio.db",
-        statement="""
-                  SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
-                  FROM Files
-                  LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
-                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                  """,
-    )
-    folderSQL = SQLDataTable(
-        "sqlite",
-        "audio.db",
-        statement="""
+    fileQuery = """
+                SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
+                FROM Files
+                LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
+                LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                """
+    folderQuery = """
                   SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
                   CASE 
                       WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
@@ -57,23 +51,48 @@ def application(page: ft.Page):
                       Folders.FolderName, 
                       Folders.TotalFiles, 
                       Folders.FolderPath
-                  """,
+                  """
+    workerQuery = """
+                  SELECT Workers.WorkerName, Workers.WorkerType
+                  FROM Workers
+                  """
+    fileSQL = SQLDataTable(
+        "sqlite",
+        "audio.db",
+        statement=fileQuery,
+    )
+    folderSQL = SQLDataTable(
+        "sqlite",
+        "audio.db",
+        statement=folderQuery,
     )
     workerSQL = SQLDataTable(
         "sqlite",
         "audio.db",
-        statement="""
-                  SELECT Workers.WorkerName, Workers.WorkerType
-                  FROM Workers
-                  """,
+        statement=workerQuery,
     )
 
-    worker_dropdown = create_worker_dropdown()
-    vetting_row = ft.Row(
-        controls=[ft.Text("Select Worker:"), worker_dropdown],
-        alignment=ft.MainAxisAlignment.START,
+    def update_files_and_folders():
+        new_fileSQL = SQLDataTable(
+            "sqlite",
+            "audio.db",
+            statement=fileQuery,
+        )
+        new_folderSQL = SQLDataTable(
+            "sqlite",
+            "audio.db",
+            statement=folderQuery,
+        )
+        files_table.controls[0] = add_check_column(new_fileSQL.datatable)
+        page.update()
+
+        folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
+        page.update()
+
+    vetting_tab, worker_dropdown_vetting = create_vetting_tab(
+        page, update_files_and_folders
     )
-    vetting_tab = ft.Column([vetting_row], tight=True, scroll="auto")
+    worker_dropdown = create_worker_dropdown()
 
     def fileButtonClick(e):
         if worker_dropdown.value != "":
@@ -82,42 +101,12 @@ def application(page: ft.Page):
                 if row.cells[6].content.value:
                     filelist.append(row.cells[1].content.value)
             update_file_assignments(worker_dropdown.value, filelist)
-            new_fileSQL = SQLDataTable(
-                "sqlite",
-                "audio.db",
-                statement="""
-                        SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
-                        FROM Files
-                        LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
-                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                        """,
-            )
-            new_folderSQL = SQLDataTable(
-                "sqlite",
-                "audio.db",
-                statement="""
-                        SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
-                        CASE 
-                            WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
-                            ELSE ''
-                        END AS WorkerName
-                        FROM Folders
-                        LEFT JOIN Files ON Folders.FolderID = Files.FolderID
-                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                        GROUP BY 
-                            Folders.FolderName, 
-                            Folders.TotalFiles, 
-                            Folders.FolderPath
-                        """,
-            )
-
-            files_table.controls[0] = add_check_column(new_fileSQL.datatable)
-            page.update()
-
-            folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
-            page.update()
+            update_files_and_folders()
 
             worker_dropdown.value = ""
+            page.update()
+
+            worker_dropdown_vetting.value = ""
             page.update()
 
     files_table = ft.Column(
@@ -153,30 +142,12 @@ def application(page: ft.Page):
             new_fileSQL = SQLDataTable(
                 "sqlite",
                 "audio.db",
-                statement="""
-                        SELECT Folders.FolderName, Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
-                        FROM Files
-                        LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
-                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                        """,
+                statement=fileQuery,
             )
             new_folderSQL = SQLDataTable(
                 "sqlite",
                 "audio.db",
-                statement="""
-                        SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
-                        CASE 
-                            WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
-                            ELSE ''
-                        END AS WorkerName
-                        FROM Folders
-                        LEFT JOIN Files ON Folders.FolderID = Files.FolderID
-                        LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                        GROUP BY 
-                            Folders.FolderName, 
-                            Folders.TotalFiles, 
-                            Folders.FolderPath
-                        """,
+                statement=folderQuery,
             )
 
             files_table.controls[0] = add_check_column(new_fileSQL.datatable)
@@ -186,6 +157,9 @@ def application(page: ft.Page):
             page.update()
 
             worker_dropdown.value = ""
+            page.update()
+
+            worker_dropdown_vetting.value = ""
             page.update()
 
     folders_table = ft.Column(
@@ -217,10 +191,7 @@ def application(page: ft.Page):
             new_workerSQL = SQLDataTable(
                 "sqlite",
                 "audio.db",
-                statement="""
-                      SELECT Workers.WorkerName, Workers.WorkerType
-                      FROM Workers
-                      """,
+                statement=workerQuery,
             )
 
         workers_table.controls[0] = add_delete_column(
@@ -228,6 +199,9 @@ def application(page: ft.Page):
         )
         page.update()
         worker_dropdown.options = [
+            ft.dropdown.Option(name) for name in generate_dropdown_options()
+        ]
+        worker_dropdown_vetting.options = [
             ft.dropdown.Option(name) for name in generate_dropdown_options()
         ]
         page.update()
@@ -245,10 +219,7 @@ def application(page: ft.Page):
             new_workerSQL = SQLDataTable(
                 "sqlite",
                 "audio.db",
-                statement="""
-                        SELECT Workers.WorkerName, Workers.WorkerType
-                        FROM Workers
-                        """,
+                statement=workerQuery,
             )
             workers_table.controls[0] = add_delete_column(
                 new_workerSQL.datatable, delete_and_refresh_workers
@@ -256,15 +227,22 @@ def application(page: ft.Page):
             worker_dropdown.options = [
                 ft.dropdown.Option(name) for name in generate_dropdown_options()
             ]
+            worker_dropdown_vetting.options = [
+                ft.dropdown.Option(name) for name in generate_dropdown_options()
+            ]
             page.update()
+            update_files_and_folders()
             close_dlg(e)
 
         delete_worker_dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text("Warning!"),
             content=ft.Text(
-                "Warning: Deleting a worker will result in losing all of their assignment info!\n\
-                            Are you sure that you want to continue?"
+                """
+                Warning: Deleting a worker will result in losing all of their assignment info!\n
+                Note: closing and reopening the program is necessary for the effects of the deletion to be present in the files/folders tables.\n
+                Are you sure that you want to continue?
+                """
             ),
             actions=[
                 ft.TextButton("Yes", on_click=execute_deletion),
