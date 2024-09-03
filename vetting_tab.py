@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import librosa
 import io
 import base64
+import numpy as np
 
 
 def create_vetting_tab(page: ft.Page, update_files_and_folders):
@@ -55,6 +56,79 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
     def play_function(file_name):
         filepath = get_filepath(file_name)
         playsound(os.path.join(os.getcwd(), filepath))
+
+    def image_function(file_name):
+        if file_name == "":
+            fig = plt.figure()
+        else:
+            # plotting the in-progress screen
+            fig, ax = plt.subplots()
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
+            ax.set_aspect("equal")
+            ax.axis("off")
+            ax.text(
+                0.5,
+                0.5,
+                "Plotting in Progress...",
+                fontsize=15,
+                ha="center",
+                va="center",
+            )
+            fig.patch.set_alpha(0)
+            buf = io.BytesIO()
+            plt.savefig(buf, format="png", transparent=True)
+            buf.seek(0)
+            plt.close(fig)
+            img_str = base64.b64encode(buf.read()).decode("utf-8")
+            if file_name == "":
+                return img_str
+            soundplot.src_base64 = img_str
+            page.update()
+            # plotting the actual plot
+            filepath = get_filepath(file_name)
+            y, sr = librosa.load(filepath)
+            fig, ax = plt.subplots(nrows=3, sharex=True)
+            librosa.display.waveshow(y, sr=sr, ax=ax[0], alpha=0.5)
+            ax[0].set(title="Singlular Waveform")
+            ax[0].set_xlabel("")
+            ax[0].label_outer()
+            y_harm, y_perc = librosa.effects.hpss(y)
+            librosa.display.waveshow(
+                y_harm, sr=sr, alpha=0.5, ax=ax[1], label="Harmonic"
+            )
+            librosa.display.waveshow(
+                y_perc, sr=sr, color="r", alpha=0.5, ax=ax[1], label="Percussive"
+            )
+            ax[1].set(title="Multiple Waveforms")
+            ax[1].set_xlabel("")
+            ax[1].legend()
+            hop_length = 1024
+            D = librosa.amplitude_to_db(
+                np.abs(librosa.stft(y, hop_length=hop_length)), ref=np.max
+            )
+            librosa.display.specshow(
+                D,
+                y_axis="log",
+                sr=sr,
+                hop_length=hop_length,
+                x_axis="time",
+                ax=ax[2],
+                cmap="gray_r",
+            )
+            ax[2].set(title="Spectrogram")
+            ax[2].set_xlabel("Time (s)")
+            ax[2].label_outer()
+            fig.set_size_inches(9, 12)
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", transparent=True)
+        buf.seek(0)
+        plt.close(fig)
+        img_str = base64.b64encode(buf.read()).decode("utf-8")
+        if file_name == "":
+            return img_str
+        soundplot.src_base64 = img_str
+        page.update()
 
     def edit_comments(file_name):
         def close_dlg(e):
@@ -133,37 +207,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         horizontal_alignment=ft.CrossAxisAlignment.START,
         spacing=20,
     )
-    soundplot = ft.Text(
-        content="Click the green plot button to generate a waveform and spectrogram"
-    )
-
-    def image_function(e, soundplot, file_name):
-        filepath = get_filepath(file_name)
-        y, sr = librosa.load(filepath)
-        fig, ax = plt.subplots(nrows=3, sharex=True)
-        librosa.display.waveshow(y, sr=sr, ax=ax[0])
-        ax[0].set(title="Envelope view, mono")
-        ax[0].label_outer()
-        y, sr = librosa.load(librosa.ex("choice", hq=True), mono=False, duration=10)
-        librosa.display.waveshow(y, sr=sr, ax=ax[1])
-        ax[1].set(title="Envelope view, stereo")
-        ax[1].label_outer()
-        y, sr = librosa.load(librosa.ex("choice"), duration=10)
-        y_harm, y_perc = librosa.effects.hpss(y)
-        librosa.display.waveshow(y_harm, sr=sr, alpha=0.5, ax=ax[2], label="Harmonic")
-        librosa.display.waveshow(
-            y_perc, sr=sr, color="r", alpha=0.5, ax=ax[2], label="Percussive"
-        )
-        ax[2].set(title="Multiple waveforms")
-        ax[2].legend()
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        plt.close(fig)
-        img_str = base64.b64encode(buf.read()).decode("utf-8")
-        soundplot = ft.Image(src="")
-        soundplot.src = f"data:image/png;base64,{img_str}"
-        soundplot.update()
+    soundplot = ft.Image(src=image_function(""))
 
     vetting_output = ft.Column(
         [ft.Container(content=soundplot, alignment=ft.alignment.center)],
