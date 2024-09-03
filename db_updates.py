@@ -14,6 +14,19 @@ def commit_conn(conn, cursor):
         conn.close()
 
 
+def get_filepath(filename):
+    conn, cursor = make_conn()
+    print(filename)
+    filepath = cursor.execute(
+        """
+        SELECT FilePath from Files
+        WHERE FileName = ?
+        """,
+        (filename,),
+    ).fetchone()[0]
+    return filepath
+
+
 def cycle_folders(data_directory):
     folderpaths = []
     for path, _, _ in os.walk(data_directory):
@@ -28,8 +41,8 @@ def add_worker(name, type):
     conn, cursor = make_conn()
     cursor.execute(
         """
-                   INSERT INTO Workers (WorkerName, WorkerType) VALUES (?, ?)
-                   """,
+        INSERT INTO Workers (WorkerName, WorkerType) VALUES (?, ?)
+        """,
         (name, type),
     )
     commit_conn(conn, cursor)
