@@ -83,9 +83,9 @@ def application(page: ft.Page):
             "audio.db",
             statement=folderQuery,
         )
-        files_table.controls[0] = add_check_column(new_fileSQL.datatable)
-        page.update()
-
+        files_table.controls[0] = color_status_col(
+            add_check_column(new_fileSQL.datatable)
+        )
         folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
         page.update()
 
@@ -104,13 +104,13 @@ def application(page: ft.Page):
             update_files_and_folders()
 
             worker_dropdown.value = ""
-            page.update()
-
             worker_dropdown_vetting.value = ""
             page.update()
 
     files_table = ft.Column(
-        [add_check_column(fileSQL.datatable)], tight=True, scroll="auto"
+        [color_status_col(add_check_column(fileSQL.datatable))],
+        tight=True,
+        scroll="auto",
     )
     files_controls = ft.Column(
         [
@@ -150,11 +150,7 @@ def application(page: ft.Page):
                 statement=folderQuery,
             )
 
-            files_table.controls[0] = add_check_column(new_fileSQL.datatable)
-            page.update()
-
-            folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
-            page.update()
+            update_files_and_folders()
 
             worker_dropdown.value = ""
             page.update()

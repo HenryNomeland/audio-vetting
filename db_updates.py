@@ -16,7 +16,6 @@ def commit_conn(conn, cursor):
 
 def get_filepath(filename):
     conn, cursor = make_conn()
-    print(filename)
     filepath = cursor.execute(
         """
         SELECT FilePath from Files
@@ -186,5 +185,32 @@ def update_file_assignments(worker_name, filelist):
          WHERE FileID IN ({','.join(['?'] * len(file_ids))})
          """,
         file_ids,
+    )
+    commit_conn(conn, cursor)
+
+
+def get_file_status(filename):
+    conn, cursor = make_conn()
+    cursor.execute(
+        """
+        SELECT FileStatus
+        FROM Files
+        WHERE FileName = ?
+        """,
+        (filename,),
+    )
+    status = cursor.fetchone()[0]
+    return status
+
+
+def refresh_db_status(filename, filestatus):
+    conn, cursor = make_conn()
+    print(filename, filestatus)
+    cursor.execute(
+        f"""
+        UPDATE Files
+        SET FileStatus = '{filestatus}' 
+        WHERE FileName = '{filename}' 
+        """,
     )
     commit_conn(conn, cursor)

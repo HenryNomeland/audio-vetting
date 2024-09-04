@@ -6,6 +6,8 @@ from dt_updates import (
     add_audacity_column,
     add_image_column,
     add_play_column,
+    add_status_dropdown,
+    refresh_db_status,
 )
 from db_updates import update_comments, get_filepath
 from playsound import playsound
@@ -15,6 +17,7 @@ import librosa
 import io
 import base64
 import numpy as np
+import seaborn as sns
 
 
 def create_vetting_tab(page: ft.Page, update_files_and_folders):
@@ -25,6 +28,10 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
                     """
     worker_dropdown_vetting = create_worker_dropdown()
     worker_dropdown_vetting.options.insert(0, ft.dropdown.Option("All"))
+    sns.set_theme(
+        style="whitegrid",
+        rc={"axes.spines.right": False, "axes.spines.top": False, "axes.grid": False},
+    )
 
     def on_worker_dropdown_change(e):
         worker = worker_dropdown_vetting.value
@@ -40,15 +47,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
                 "audio.db",
                 statement=vettingQuery,
             )
-        vetting_table.controls[0] = add_play_column(
-            add_image_column(
-                add_audacity_column(
-                    add_edit_column(vettingSQLWorker.datatable, edit_comments)
-                ),
-                image_function,
-            ),
-            play_function,
-        )
+        vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
         page.update()
 
     worker_dropdown_vetting.on_change = on_worker_dropdown_change
@@ -58,6 +57,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         playsound(os.path.join(os.getcwd(), filepath))
 
     def image_function(file_name):
+        filenamename = file_name.split(".")[0]
         if file_name == "":
             fig = plt.figure()
         else:
@@ -90,7 +90,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
             y, sr = librosa.load(filepath)
             fig, ax = plt.subplots(nrows=3, sharex=True)
             librosa.display.waveshow(y, sr=sr, ax=ax[0], alpha=0.5)
-            ax[0].set(title="Singlular Waveform")
+            ax[0].set(title=f"Singular Waveform - {filenamename}")
             ax[0].set_xlabel("")
             ax[0].label_outer()
             y_harm, y_perc = librosa.effects.hpss(y)
@@ -100,7 +100,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
             librosa.display.waveshow(
                 y_perc, sr=sr, color="r", alpha=0.5, ax=ax[1], label="Percussive"
             )
-            ax[1].set(title="Multiple Waveforms")
+            ax[1].set(title=f"Multiple Waveforms - {filenamename}")
             ax[1].set_xlabel("")
             ax[1].legend()
             hop_length = 1024
@@ -116,10 +116,13 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
                 ax=ax[2],
                 cmap="gray_r",
             )
-            ax[2].set(title="Spectrogram")
+            ax[2].set(title=f"Spectrogram - {filenamename}")
             ax[2].set_xlabel("Time (s)")
             ax[2].label_outer()
-            fig.set_size_inches(9, 12)
+            plt.subplots_adjust(
+                left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.4, hspace=0.2
+            )
+            fig.set_size_inches(9, 13)
         buf = io.BytesIO()
         plt.savefig(buf, format="png", transparent=True)
         buf.seek(0)
@@ -151,14 +154,8 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
                     "audio.db",
                     statement=vettingQuery,
                 )
-            vetting_table.controls[0] = add_play_column(
-                add_image_column(
-                    add_audacity_column(
-                        add_edit_column(vettingSQLWorker.datatable, edit_comments)
-                    ),
-                    image_function,
-                ),
-                play_function,
+            vetting_table.controls[0] = refresh_vetting_table(
+                vettingSQLWorker.datatable
             )
             page.update()
             update_files_and_folders()
@@ -176,6 +173,28 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         )
         page.open(edit_comments_dlg)
 
+    def status_function(e, filename):
+        filestatus = e.control.value
+        refresh_db_status(filename, filestatus)
+        vetting_table.controls[0] = add_status_dropdown(
+            vetting_table.controls[0], status_function
+        )
+        update_files_and_folders()
+        page.update()
+
+    def refresh_vetting_table(dt):
+        newtable = add_status_dropdown(
+            add_play_column(
+                add_image_column(
+                    add_audacity_column(add_edit_column(dt, edit_comments)),
+                    image_function,
+                ),
+                play_function,
+            ),
+            status_function,
+        )
+        return newtable
+
     vettingSQLNULL = SQLDataTable(
         "sqlite", "audio.db", statement=vettingQuery + "WHERE Files.FileName = ''"
     )
@@ -187,17 +206,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         alignment=ft.MainAxisAlignment.START,
     )
     vetting_table = ft.Row(
-        [
-            add_play_column(
-                add_image_column(
-                    add_audacity_column(
-                        add_edit_column(vettingSQLNULL.datatable, edit_comments)
-                    ),
-                    image_function,
-                ),
-                play_function,
-            )
-        ],
+        [refresh_vetting_table(vettingSQLNULL.datatable)],
         alignment=ft.MainAxisAlignment.START,
     )
     vetting_controls = ft.Column(

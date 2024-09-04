@@ -122,3 +122,76 @@ def add_play_column(data_table, play_function):
         updated_rows.append(ft.DataRow(cells=updated_row))
     new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
     return new_data_table
+
+
+def add_status_dropdown(data_table, status_function):
+    new_columns = data_table.columns.copy()
+    new_rows = data_table.rows.copy()
+    updated_rows = []
+    for row in new_rows:
+        status_dropdown = ft.Dropdown(
+            options=[
+                ft.dropdown.Option("Incomplete"),
+                ft.dropdown.Option("Complete"),
+                ft.dropdown.Option("Flagged"),
+            ],
+            on_change=lambda e, filename=row.cells[0].content.value: status_function(
+                e, filename
+            ),
+            text_style=ft.TextStyle(size=13, color=ft.colors.BLACK),
+            content_padding=ft.Padding(6, 0, 2, 5),
+            border=ft.InputBorder.NONE,
+        )
+        status_dropdown.value = get_file_status(row.cells[0].content.value)
+        updated_row = row.cells
+        if status_dropdown.value == "Incomplete":
+            updated_cell = ft.Container(
+                content=status_dropdown, padding=ft.Padding(2, 5, 3, 4), width=130
+            )
+        if status_dropdown.value == "Flagged":
+            updated_cell = ft.Container(
+                content=status_dropdown,
+                padding=ft.Padding(2, 5, 3, 4),
+                width=130,
+                bgcolor=ft.colors.RED_ACCENT_100,
+            )
+        if status_dropdown.value == "Complete":
+            updated_cell = ft.Container(
+                content=status_dropdown,
+                padding=ft.Padding(2, 5, 3, 4),
+                width=130,
+                bgcolor=ft.colors.GREEN_ACCENT_100,
+            )
+        updated_row[3] = ft.DataCell(updated_cell)
+        updated_rows.append(ft.DataRow(cells=updated_row))
+    new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
+    return new_data_table
+
+
+def color_status_col(data_table):
+    new_columns = data_table.columns.copy()
+    new_rows = data_table.rows.copy()
+    updated_rows = []
+    for row in new_rows:
+        updated_row = row.cells
+        row_status = updated_row[4].content.value
+        if row_status == "Incomplete":
+            updated_cell = ft.Text(
+                value=updated_row[4].content.value,
+            )
+        if row_status == "Flagged":
+            updated_cell = ft.Text(
+                value=updated_row[4].content.value,
+                weight=ft.FontWeight.W_800,
+                color=ft.colors.RED_800,
+            )
+        if row_status == "Complete":
+            updated_cell = ft.Text(
+                value=updated_row[4].content.value,
+                weight=ft.FontWeight.BOLD,
+                color=ft.colors.GREEN_800,
+            )
+        updated_row[4] = ft.DataCell(updated_cell)
+        updated_rows.append(ft.DataRow(cells=updated_row))
+    new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
+    return new_data_table
