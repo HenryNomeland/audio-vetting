@@ -189,6 +189,50 @@ def update_file_assignments(worker_name, filelist):
     commit_conn(conn, cursor)
 
 
+def scrub_folder_assignments(folderlist):
+    conn, cursor = make_conn()
+    cursor.execute(
+        f"""
+         SELECT FolderID
+         FROM Folders 
+         WHERE FolderPath IN ({','.join(['?'] * len(folderlist))})
+         """,
+        folderlist,
+    )
+    folder_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(
+        f"""
+         UPDATE Files
+         SET WorkerID = '' 
+         WHERE FolderID IN ({','.join(['?'] * len(folder_ids))})
+         """,
+        folder_ids,
+    )
+    commit_conn(conn, cursor)
+
+
+def scrub_file_assignments(filelist):
+    conn, cursor = make_conn()
+    cursor.execute(
+        f"""
+         SELECT FileID 
+         FROM Files 
+         WHERE FileName IN ({','.join(['?'] * len(filelist))})
+         """,
+        filelist,
+    )
+    file_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(
+        f"""
+         UPDATE Files
+         SET WorkerID = '' 
+         WHERE FileID IN ({','.join(['?'] * len(file_ids))})
+         """,
+        file_ids,
+    )
+    commit_conn(conn, cursor)
+
+
 def get_file_status(filename):
     conn, cursor = make_conn()
     cursor.execute(

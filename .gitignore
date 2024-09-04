@@ -1,3 +1,5 @@
 Data
 *.db
 *pycache*
+add_silence.py
+silence.wav

@@ -102,10 +102,20 @@ def application(page: ft.Page):
                     filelist.append(row.cells[1].content.value)
             update_file_assignments(worker_dropdown.value, filelist)
             update_files_and_folders()
-
             worker_dropdown.value = ""
             worker_dropdown_vetting.value = ""
             page.update()
+
+    def fileAltButtonClick(e):
+        filelist = []
+        for row in files_table.controls[0].rows:
+            if row.cells[6].content.value:
+                filelist.append(row.cells[1].content.value)
+        scrub_file_assignments(filelist)
+        update_files_and_folders()
+        worker_dropdown.value = ""
+        worker_dropdown_vetting.value = ""
+        page.update()
 
     files_table = ft.Column(
         [color_status_col(add_check_column(fileSQL.datatable))],
@@ -117,6 +127,9 @@ def application(page: ft.Page):
             worker_dropdown,
             ft.ElevatedButton(
                 text="Assign Selected to Worker", on_click=fileButtonClick
+            ),
+            ft.ElevatedButton(
+                text="Unassign Selected Files", on_click=fileAltButtonClick
             ),
         ],
         tight=True,
@@ -139,24 +152,21 @@ def application(page: ft.Page):
                 if row.cells[4].content.value:
                     folderlist.append(row.cells[2].content.value)
             update_folder_assignments(worker_dropdown.value, folderlist)
-            new_fileSQL = SQLDataTable(
-                "sqlite",
-                "audio.db",
-                statement=fileQuery,
-            )
-            new_folderSQL = SQLDataTable(
-                "sqlite",
-                "audio.db",
-                statement=folderQuery,
-            )
-
             update_files_and_folders()
-
             worker_dropdown.value = ""
-            page.update()
-
             worker_dropdown_vetting.value = ""
             page.update()
+
+    def folderAltButtonClick(e):
+        folderlist = []
+        for row in folders_table.controls[0].rows:
+            if row.cells[4].content.value:
+                folderlist.append(row.cells[2].content.value)
+        scrub_folder_assignments(folderlist)
+        update_files_and_folders()
+        worker_dropdown.value = ""
+        worker_dropdown_vetting.value = ""
+        page.update()
 
     folders_table = ft.Column(
         [add_check_column(folderSQL.datatable)], tight=True, scroll="auto"
@@ -166,6 +176,9 @@ def application(page: ft.Page):
             worker_dropdown,
             ft.ElevatedButton(
                 text="Assign Selected to Worker", on_click=folderButtonClick
+            ),
+            ft.ElevatedButton(
+                text="Unassign Selected Files", on_click=folderAltButtonClick
             ),
         ],
         tight=True,
