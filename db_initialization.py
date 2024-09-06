@@ -12,8 +12,7 @@ def init_db(data_folder="Data", overwrite_db=False):
         base_dir = os.path.dirname(sys.executable)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(os.path.dirname(base_dir))
-    data_folder = os.path.join(parent_dir, data_folder)
+    data_folder = os.path.join(base_dir, data_folder)
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"

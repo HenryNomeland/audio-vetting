@@ -1,8 +1,9 @@
 import sqlite3
 import os
+import sys
 
 
-def make_conn():
+def make_conn(data_folder="Data"):
     conn = sqlite3.connect("audio.db")
     return conn, conn.cursor()
 
