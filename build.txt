@@ -1,1 +1,1 @@
-flet build -vv windows --build-number 1 --build-version 1.0.0
+flet pack main.py --icon icon.png --product-name 'Audio Vetting' --production-version 1.0
