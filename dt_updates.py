@@ -4,6 +4,8 @@ from db_updates import *
 from sys import platform
 import subprocess
 
+audacity_location = r"C:\Program Files (x86)\Audacity\Audacity.exe"
+
 
 def create_worker_dropdown():
     worker_names = generate_dropdown_options()
@@ -64,7 +66,7 @@ def add_edit_column(data_table, edit_function):
 
 def audacity_function(file_name):
     filepath = get_filepath(file_name)
-    subprocess.run(["audacity", filepath])
+    subprocess.run([audacity_location, filepath])
 
 
 def add_audacity_column(data_table):

@@ -117,10 +117,44 @@ def application(page: ft.Page):
         worker_dropdown_vetting.value = ""
         page.update()
 
+    def to_listview(table: ft.DataTable):
+        column_widths = [100, 170, 130, 70, 120, 350, 70]
+        list_view = ft.ListView(expand=False, spacing=0, width=sum(column_widths) + 150)
+        headerRow = ft.Row()
+        for i in range(len(table.columns)):
+            headerRow.controls.append(
+                ft.Container(
+                    content=ft.Text(
+                        str(table.columns[i].label.value),
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    width=column_widths[i],
+                    padding=ft.Padding(5, 5, 5, 5),
+                )
+            )
+        list_view.controls.append(headerRow)
+        for data_row in table.rows:
+            rowRow = ft.Row()
+            for i in range(len(data_row.cells)):
+                rowRow.controls.append(
+                    ft.Container(
+                        content=data_row.cells[i].content,
+                        width=column_widths[i],
+                        padding=ft.Padding(5, 5, 5, 5),
+                    )
+                )
+            list_view.controls.append(rowRow)
+        return list_view
+
+    files_listview = to_listview(color_status_col(add_check_column(fileSQL.datatable)))
+
     files_table = ft.Column(
-        [color_status_col(add_check_column(fileSQL.datatable))],
+        [files_listview],
         tight=True,
         scroll="auto",
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
     )
     files_controls = ft.Column(
         [
