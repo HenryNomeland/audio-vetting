@@ -83,8 +83,8 @@ def application(page: ft.Page):
             "audio.db",
             statement=folderQuery,
         )
-        files_table.controls[0] = color_status_col(
-            add_check_column(new_fileSQL.datatable)
+        files_table.controls[0] = to_listview(
+            color_status_col(add_check_column(new_fileSQL.datatable))
         )
         folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
         page.update()
@@ -119,7 +119,12 @@ def application(page: ft.Page):
 
     def to_listview(table: ft.DataTable):
         column_widths = [100, 170, 130, 70, 120, 350, 70]
-        list_view = ft.ListView(expand=False, spacing=0, width=sum(column_widths) + 150)
+        list_view = ft.ListView(
+            expand=False,
+            spacing=0,
+            width=sum(column_widths) + 150,
+            divider_thickness=10,
+        )
         headerRow = ft.Row()
         for i in range(len(table.columns)):
             headerRow.controls.append(
