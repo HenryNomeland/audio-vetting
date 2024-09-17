@@ -18,6 +18,7 @@ import io
 import base64
 import numpy as np
 import seaborn as sns
+from to_listview import *
 
 
 def create_vetting_tab(page: ft.Page, update_files_and_folders):
@@ -176,22 +177,28 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
     def status_function(e, filename):
         filestatus = e.control.value
         refresh_db_status(filename, filestatus)
-        vetting_table.controls[0] = add_status_dropdown(
-            vetting_table.controls[0], status_function
+        vetting_table.controls[0] = to_listview(
+            add_status_dropdown(
+                to_datatable(vetting_table.controls[0]), status_function
+            ),
+            vettingWidths,
         )
         update_files_and_folders()
         page.update()
 
     def refresh_vetting_table(dt):
-        newtable = add_status_dropdown(
-            add_play_column(
-                add_image_column(
-                    add_audacity_column(add_edit_column(dt, edit_comments)),
-                    image_function,
+        newtable = to_listview(
+            add_status_dropdown(
+                add_play_column(
+                    add_image_column(
+                        add_audacity_column(add_edit_column(dt, edit_comments)),
+                        image_function,
+                    ),
+                    play_function,
                 ),
-                play_function,
+                status_function,
             ),
-            status_function,
+            vettingWidths,
         )
         return newtable
 

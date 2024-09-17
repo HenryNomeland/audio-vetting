@@ -6,6 +6,7 @@ from simpledt import SQLDataTable
 from db_updates import *
 from dt_updates import *
 from vetting_tab import *
+from to_listview import *
 
 
 def main(page: ft.Page):
@@ -83,10 +84,13 @@ def application(page: ft.Page):
             "audio.db",
             statement=folderQuery,
         )
-        files_table.controls[0] = to_listview(
+        files_table.content.controls[0] = to_listview(
             color_status_col(add_check_column(new_fileSQL.datatable))
         )
-        folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
+        page.update()
+        folders_table.content.controls[0] = to_listview(
+            add_check_column(new_folderSQL.datatable), widths=folderWidths
+        )
         page.update()
 
     vetting_tab, worker_dropdown_vetting = create_vetting_tab(
@@ -97,69 +101,33 @@ def application(page: ft.Page):
     def fileButtonClick(e):
         if worker_dropdown.value != "":
             filelist = []
-            for row in files_table.controls[0].rows:
-                if row.cells[6].content.value:
-                    filelist.append(row.cells[1].content.value)
+            for row in files_table.content.controls[0].controls:
+                if row.controls[6].content.value:
+                    filelist.append(row.controls[1].content.value)
             update_file_assignments(worker_dropdown.value, filelist)
             update_files_and_folders()
-            worker_dropdown.value = ""
-            worker_dropdown_vetting.value = ""
-            page.update()
 
     def fileAltButtonClick(e):
         filelist = []
-        for row in files_table.controls[0].rows:
-            if row.cells[6].content.value:
-                filelist.append(row.cells[1].content.value)
+        for row in files_table.content.controls[0].controls:
+            if row.controls[6].content.value:
+                filelist.append(row.controls[1].content.value)
         scrub_file_assignments(filelist)
         update_files_and_folders()
-        worker_dropdown.value = ""
-        worker_dropdown_vetting.value = ""
-        page.update()
-
-    def to_listview(table: ft.DataTable):
-        column_widths = [100, 170, 130, 70, 120, 350, 70]
-        list_view = ft.ListView(
-            expand=False,
-            spacing=0,
-            width=sum(column_widths) + 150,
-            divider_thickness=10,
-        )
-        headerRow = ft.Row()
-        for i in range(len(table.columns)):
-            headerRow.controls.append(
-                ft.Container(
-                    content=ft.Text(
-                        str(table.columns[i].label.value),
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    width=column_widths[i],
-                    padding=ft.Padding(5, 5, 5, 5),
-                )
-            )
-        list_view.controls.append(headerRow)
-        for data_row in table.rows:
-            rowRow = ft.Row()
-            for i in range(len(data_row.cells)):
-                rowRow.controls.append(
-                    ft.Container(
-                        content=data_row.cells[i].content,
-                        width=column_widths[i],
-                        padding=ft.Padding(5, 5, 5, 5),
-                    )
-                )
-            list_view.controls.append(rowRow)
-        return list_view
 
     files_listview = to_listview(color_status_col(add_check_column(fileSQL.datatable)))
+    TBL_PADDING = 50
 
-    files_table = ft.Column(
-        [files_listview],
-        tight=True,
-        scroll="auto",
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=20,
+    files_table = ft.Container(
+        ft.Column(
+            [files_listview],
+            tight=True,
+            scroll="auto",
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20,
+        ),
+        padding=ft.Padding(0, TBL_PADDING, 0, TBL_PADDING),
     )
     files_controls = ft.Column(
         [
@@ -187,28 +155,35 @@ def application(page: ft.Page):
     def folderButtonClick(e):
         if worker_dropdown.value != "":
             folderlist = []
-            for row in folders_table.controls[0].rows:
-                if row.cells[4].content.value:
-                    folderlist.append(row.cells[2].content.value)
+            for row in folders_table.content.controls[0].controls:
+                if row.controls[4].content.value:
+                    folderlist.append(row.controls[2].content.value)
             update_folder_assignments(worker_dropdown.value, folderlist)
             update_files_and_folders()
-            worker_dropdown.value = ""
-            worker_dropdown_vetting.value = ""
-            page.update()
 
     def folderAltButtonClick(e):
         folderlist = []
-        for row in folders_table.controls[0].rows:
-            if row.cells[4].content.value:
-                folderlist.append(row.cells[2].content.value)
+        for row in folders_table.content.controls[0].controls:
+            if row.controls[4].content.value:
+                folderlist.append(row.controls[2].content.value)
         scrub_folder_assignments(folderlist)
         update_files_and_folders()
-        worker_dropdown.value = ""
-        worker_dropdown_vetting.value = ""
-        page.update()
 
-    folders_table = ft.Column(
-        [add_check_column(folderSQL.datatable)], tight=True, scroll="auto"
+    folders_table = ft.Container(
+        ft.Column(
+            [
+                to_listview(
+                    add_check_column(folderSQL.datatable),
+                    widths=folderWidths,
+                )
+            ],
+            tight=True,
+            scroll="auto",
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20,
+        ),
+        padding=ft.Padding(0, TBL_PADDING, 0, TBL_PADDING),
     )
     folders_controls = ft.Column(
         [
@@ -252,7 +227,9 @@ def application(page: ft.Page):
         worker_dropdown_vetting.options = [
             ft.dropdown.Option(name) for name in generate_dropdown_options()
         ]
+        worker_dropdown_vetting.options.insert(0, ft.dropdown.Option("All"))
         page.update()
+        worker_dropdown_vetting.value = "All"
 
         workerTF1.value = ""
         workerTF2.value = ""
@@ -272,13 +249,16 @@ def application(page: ft.Page):
             workers_table.controls[0] = add_delete_column(
                 new_workerSQL.datatable, delete_and_refresh_workers
             )
+            page.update()
             worker_dropdown.options = [
                 ft.dropdown.Option(name) for name in generate_dropdown_options()
             ]
             worker_dropdown_vetting.options = [
                 ft.dropdown.Option(name) for name in generate_dropdown_options()
             ]
+            worker_dropdown_vetting.options.insert(0, ft.dropdown.Option("All"))
             page.update()
+            worker_dropdown_vetting.value = "All"
             update_files_and_folders()
             close_dlg(e)
 
