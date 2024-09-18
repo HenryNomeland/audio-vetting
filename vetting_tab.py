@@ -88,21 +88,11 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
             # plotting the actual plot
             filepath = get_filepath(file_name)
             y, sr = librosa.load(filepath)
-            fig, ax = plt.subplots(nrows=3, sharex=True)
+            fig, ax = plt.subplots(nrows=2, sharex=True)
             librosa.display.waveshow(y, sr=sr, ax=ax[0], alpha=0.5)
             ax[0].set(title=f"Singular Waveform - {filenamename}")
             ax[0].set_xlabel("")
             ax[0].label_outer()
-            y_harm, y_perc = librosa.effects.hpss(y)
-            librosa.display.waveshow(
-                y_harm, sr=sr, alpha=0.5, ax=ax[1], label="Harmonic"
-            )
-            librosa.display.waveshow(
-                y_perc, sr=sr, color="r", alpha=0.5, ax=ax[1], label="Percussive"
-            )
-            ax[1].set(title=f"Multiple Waveforms - {filenamename}")
-            ax[1].set_xlabel("")
-            ax[1].legend()
             hop_length = 1024
             D = librosa.amplitude_to_db(
                 np.abs(librosa.stft(y, hop_length=hop_length)), ref=np.max
@@ -113,16 +103,16 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
                 sr=sr,
                 hop_length=hop_length,
                 x_axis="time",
-                ax=ax[2],
+                ax=ax[1],
                 cmap="gray_r",
             )
-            ax[2].set(title=f"Spectrogram - {filenamename}")
-            ax[2].set_xlabel("Time (s)")
-            ax[2].label_outer()
+            ax[1].set(title=f"Spectrogram - {filenamename}")
+            ax[1].set_xlabel("Time (s)")
+            ax[1].label_outer()
             plt.subplots_adjust(
                 left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.4, hspace=0.2
             )
-            fig.set_size_inches(9, 13)
+            fig.set_size_inches(13, 13)
         buf = io.BytesIO()
         plt.savefig(buf, format="png", transparent=True)
         buf.seek(0)
@@ -209,12 +199,15 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         [refresh_vetting_table(vettingSQLNULL.datatable)],
         alignment=ft.MainAxisAlignment.START,
     )
-    vetting_controls = ft.Column(
-        [vetting_row, vetting_table],
-        scroll="auto",
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.START,
-        spacing=20,
+    vetting_controls = ft.Container(
+        ft.Column(
+            [vetting_row, vetting_table],
+            scroll="auto",
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.START,
+            spacing=20,
+        ),
+        padding=ft.Padding(30, 50, 0, 50),
     )
     soundplot = ft.Image(src=image_function(""))
 

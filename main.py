@@ -138,11 +138,14 @@ def application(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=20,
     )
-    files_tab = ft.Row(
-        [files_table, files_controls],
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=30,
+    files_tab = ft.Container(
+        ft.Row(
+            [files_table, files_controls],
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=30,
+        ),
+        padding=ft.Padding(0, 50, 0, 50),
     )
 
     def folderButtonClick(e):
@@ -187,11 +190,14 @@ def application(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=20,
     )
-    folders_tab = ft.Row(
-        [folders_table, folders_controls],
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=30,
+    folders_tab = ft.Container(
+        ft.Row(
+            [folders_table, folders_controls],
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=30,
+        ),
+        padding=ft.Padding(0, 50, 0, 50),
     )
 
     def workerButtonClick(e):

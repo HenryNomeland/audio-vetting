@@ -1,8 +1,8 @@
 import flet as ft
 from simpledt import SQLDataTable
 from db_updates import *
-from sys import platform
 import subprocess
+import platform
 
 
 def create_worker_dropdown():
@@ -64,7 +64,14 @@ def add_edit_column(data_table, edit_function):
 
 def audacity_function(file_name):
     filepath = get_filepath(file_name)
-    subprocess.run(["audacity", filepath])
+    os = platform.system()
+    if os == "Windows":
+        try:
+            subprocess.run([r"C:\Program Files (x86)\Audacity\Audacity.exe", filepath])
+        except:
+            subprocess.run([r"C:\Program Files\Audacity\Audacity.exe", filepath])
+    if os == "Darwin":
+        subprocess.run([r"/Applications/Audacity/Audacity.exe", filepath])
 
 
 def add_audacity_column(data_table):

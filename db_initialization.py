@@ -5,6 +5,21 @@ from db_updates import *
 import sys
 
 
+def get_drive_path(path):
+    drive_letter = path[0]
+    drive = f"{drive_letter}:"
+    try:
+        f = open("config.txt", "r")
+        try:
+            address = f.readlines()[4].strip()
+            drive_path = path.replace(drive, address)
+            return os.Path(drive_path)
+        except:
+            return path
+    except:
+        return path
+
+
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db(data_folder="Data", overwrite_db=False):
     conn, cursor = make_conn()
@@ -12,8 +27,8 @@ def init_db(data_folder="Data", overwrite_db=False):
         base_dir = os.path.dirname(sys.executable)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(os.path.dirname(base_dir))
-    data_folder = os.path.join(parent_dir, data_folder)
+    data_folder = get_drive_path(os.path.join(base_dir, data_folder))
+    print(type(data_folder))
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"
