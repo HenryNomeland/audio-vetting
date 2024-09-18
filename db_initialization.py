@@ -11,9 +11,12 @@ def get_drive_path(path):
     try:
         f = open("config.txt", "r")
         try:
-            address = f.readlines()[4].strip()
+            address = rf"{f.readlines()[4]}".strip()
             drive_path = path.replace(drive, address)
-            return os.Path(drive_path)
+            if os.path.exists(drive_path):
+                return os.path.normpath(drive_path)
+            else:
+                return path
         except:
             return path
     except:
@@ -28,7 +31,7 @@ def init_db(data_folder="Data", overwrite_db=False):
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
     data_folder = get_drive_path(os.path.join(base_dir, data_folder))
-    print(type(data_folder))
+    print(data_folder)
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"
