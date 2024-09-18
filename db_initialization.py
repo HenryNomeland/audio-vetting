@@ -11,7 +11,7 @@ def get_drive_path(path):
     try:
         f = open("config.txt", "r")
         try:
-            address = rf"{f.readlines()[4]}".strip()
+            address = r"\\wcs-cifs.waisman.wisc.edu\wc"
             drive_path = path.replace(drive, address)
             if os.path.exists(drive_path):
                 return os.path.normpath(drive_path)
