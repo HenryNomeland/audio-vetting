@@ -23,7 +23,21 @@ def get_filepath(filename):
         """,
         (filename,),
     ).fetchone()[0]
-    return filepath
+    print(filepath)
+    if os.path.exists("C:" + filepath[2:]):
+        return "C:" + filepath[2:]
+    elif os.path.exists("X:" + filepath[2:]):
+        return "X:" + filepath[2:]
+    elif os.path.exists("Y:" + filepath[2:]):
+        return "Y:" + filepath[2:]
+    elif os.path.exists("W:" + filepath[2:]):
+        return "W:" + filepath[2:]
+    elif os.path.exists("Z:" + filepath[2:]):
+        return "Z:" + filepath[2:]
+    elif os.path.exists("\\\\wcs-cifs\\wc\\speech_data" + filepath[2:]):
+        return "\\\\wcs-cifs\\wc\\speech_data" + filepath[2:]
+    elif os.path.exists("M:\\wc\\speech_data" + filepath[2:]):
+        return "M:\\wc\\speech_data" + filepath[2:]
 
 
 def cycle_folders(data_directory):
@@ -133,6 +147,38 @@ def generate_dropdown_options():
     worker_list = [row[0] for row in cursor.fetchall()]
     commit_conn(conn, cursor)
     return worker_list
+
+
+def generate_visitdropdown_options(worker):
+    conn, cursor = make_conn()
+    if worker != "All":
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Workers
+            LEFT JOIN Files
+            ON Workers.WorkerID = Files.WorkerID
+            LEFT JOIN Folders
+            ON Files.FolderID = Folders.FolderID
+            WHERE Workers.WorkerName = '{worker}' 
+            """
+        )
+    else:
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Folders
+            """
+        )
+    visit_list = [row[0] for row in cursor.fetchall()]
+    commit_conn(conn, cursor)
+    return visit_list
+
+
+def generate_foldergroupdropdown_options():
+    conn, cursor = make_conn()
+    cursor.execute("SELECT DISTINCT FolderGroup FROM Folders")
+    group_list = [row[0] for row in cursor.fetchall()]
+    commit_conn(conn, cursor)
+    return group_list
 
 
 def delete_worker(worker_name):
@@ -249,7 +295,6 @@ def get_file_status(filename):
 
 def refresh_db_status(filename, filestatus):
     conn, cursor = make_conn()
-    print(filename, filestatus)
     cursor.execute(
         f"""
         UPDATE Files
@@ -258,3 +303,27 @@ def refresh_db_status(filename, filestatus):
         """,
     )
     commit_conn(conn, cursor)
+
+
+def get_default_visit():
+    conn, cursor = make_conn()
+    cursor.execute(
+        f"""
+        SELECT DISTINCT FolderName 
+        FROM Folders
+        """
+    )
+    foldername = cursor.fetchone()[0]
+    return foldername
+
+
+def get_default_foldergroup():
+    conn, cursor = make_conn()
+    cursor.execute(
+        f"""
+        SELECT DISTINCT FolderGroup 
+        FROM Folders
+        """
+    )
+    foldergroup = cursor.fetchone()[0]
+    return foldergroup

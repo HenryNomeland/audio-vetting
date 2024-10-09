@@ -13,6 +13,22 @@ def create_worker_dropdown():
     )
 
 
+def create_visit_dropdown():
+    visit_names = generate_visitdropdown_options("All")
+    return ft.Dropdown(
+        label="Select Visit",
+        options=[ft.dropdown.Option(name) for name in visit_names],
+    )
+
+
+def create_foldergroup_dropdown():
+    group_names = generate_foldergroupdropdown_options()
+    return ft.Dropdown(
+        label="Select Visit Group",
+        options=[ft.dropdown.Option(name) for name in group_names],
+    )
+
+
 def add_check_column(data_table):
     new_columns = data_table.columns.copy()
     new_rows = data_table.rows.copy()
@@ -62,32 +78,47 @@ def add_edit_column(data_table, edit_function):
     return new_data_table
 
 
-def audacity_function(file_name):
+def audioedit_function(file_name):
     filepath = get_filepath(file_name)
     os = platform.system()
+    # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
     if os == "Windows":
         try:
-            subprocess.run([r"C:\Program Files (x86)\Audacity\Audacity.exe", filepath])
+            subprocess.run(
+                [
+                    r"C:\Program Files (x86)\Adobe\Adobe Audition 2024\Adobe Audition.exe",
+                    filepath,
+                ]
+            )
         except:
-            subprocess.run([r"C:\Program Files\Audacity\Audacity.exe", filepath])
-    if os == "Darwin":
-        subprocess.run([r"/Applications/Audacity/Audacity.exe", filepath])
+            try:
+                subprocess.run(
+                    [
+                        r"C:\Program Files\Adobe\Adobe Audition 2024\Adobe Audition.exe",
+                        filepath,
+                    ]
+                )
+            except:
+                try:
+                    subprocess.run([r"C:\Program Files\Audacity\Audacity.exe"])
+                except:
+                    subprocess.run([r"C:\Program Files (x86)\Audacity\Audacity.exe"])
 
 
-def add_audacity_column(data_table):
+def add_audioedit_column(data_table):
     new_columns = data_table.columns.copy()
     new_rows = data_table.rows.copy()
-    new_columns.append(ft.DataColumn(ft.Text("Audacity")))
+    new_columns.append(ft.DataColumn(ft.Text("Audio")))
     updated_rows = []
     for row in new_rows:
-        audacity_button = ft.IconButton(
+        audioedit_button = ft.IconButton(
             icon=ft.icons.HEARING_ROUNDED,
             icon_color="pink",
-            on_click=lambda e, filename=row.cells[0].content.value: audacity_function(
+            on_click=lambda e, filename=row.cells[0].content.value: audioedit_function(
                 filename
             ),
         )
-        updated_row = row.cells + [ft.DataCell(audacity_button)]
+        updated_row = row.cells + [ft.DataCell(audioedit_button)]
         updated_rows.append(ft.DataRow(cells=updated_row))
     new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
     return new_data_table
@@ -126,6 +157,24 @@ def add_play_column(data_table, play_function):
             ),
         )
         updated_row = row.cells + [ft.DataCell(play_button)]
+        updated_rows.append(ft.DataRow(cells=updated_row))
+    new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
+    return new_data_table
+
+
+def add_pause_column(data_table, pause_function):
+    new_columns = data_table.columns.copy()
+    new_rows = data_table.rows.copy()
+    new_columns.append(ft.DataColumn(ft.Text("Stop")))
+    updated_rows = []
+    for row in new_rows:
+        pause_button = ft.IconButton(
+            icon=ft.icons.SQUARE,
+            icon_color="black",
+            icon_size=18,
+            on_click=lambda e: pause_function(),
+        )
+        updated_row = row.cells + [ft.DataCell(pause_button)]
         updated_rows.append(ft.DataRow(cells=updated_row))
     new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
     return new_data_table

@@ -18,13 +18,13 @@ def main(page: ft.Page):
         )
     )
     page.update()
+    update_sqliteDB(page)
 
-    def update_sqliteDB():
-        init_db()
-        page.clean()
-        application(page)
 
-    threading.Thread(target=update_sqliteDB).start()
+def update_sqliteDB(page: ft.Page):
+    init_db()
+    page.clean()
+    application(page)
 
 
 def application(page: ft.Page):
@@ -38,20 +38,22 @@ def application(page: ft.Page):
                 LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
                 LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
                 """
-    folderQuery = """
-                  SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
-                  CASE 
-                      WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
-                      ELSE ''
-                  END AS WorkerName
-                  FROM Folders
-                  LEFT JOIN Files ON Folders.FolderID = Files.FolderID
-                  LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
-                  GROUP BY 
-                      Folders.FolderName, 
-                      Folders.TotalFiles, 
-                      Folders.FolderPath
-                  """
+    folderQuery1 = """
+                   SELECT Folders.FolderName, Folders.TotalFiles, Folders.FolderPath, 
+                   CASE 
+                       WHEN COUNT(DISTINCT Files.WorkerID) = 1 THEN MAX(Workers.WorkerName)
+                       ELSE ''
+                   END AS WorkerName
+                   FROM Folders
+                   LEFT JOIN Files ON Folders.FolderID = Files.FolderID
+                   LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                   """
+    folderQuery2 = """
+                   GROUP BY 
+                       Folders.FolderName, 
+                       Folders.TotalFiles, 
+                       Folders.FolderPath
+                   """
     workerQuery = """
                   SELECT Workers.WorkerName, Workers.WorkerType
                   FROM Workers
@@ -59,12 +61,14 @@ def application(page: ft.Page):
     fileSQL = SQLDataTable(
         "sqlite",
         "audio.db",
-        statement=fileQuery,
+        statement=fileQuery + f"WHERE Folders.FolderName = '{get_default_visit()}'",
     )
     folderSQL = SQLDataTable(
         "sqlite",
         "audio.db",
-        statement=folderQuery,
+        statement=folderQuery1
+        + f"WHERE Folders.FolderGroup = '{get_default_foldergroup()}'"
+        + folderQuery2,
     )
     workerSQL = SQLDataTable(
         "sqlite",
@@ -72,16 +76,24 @@ def application(page: ft.Page):
         statement=workerQuery,
     )
 
-    def update_files_and_folders():
+    def update_files_and_folders(
+        visit=get_default_visit(), foldergroup=get_default_foldergroup()
+    ):
+        if visit == "":
+            visit = get_default_visit()
+        if foldergroup == "":
+            foldergroup = get_default_foldergroup()
         new_fileSQL = SQLDataTable(
             "sqlite",
             "audio.db",
-            statement=fileQuery,
+            statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
         )
         new_folderSQL = SQLDataTable(
             "sqlite",
             "audio.db",
-            statement=folderQuery,
+            statement=folderQuery1
+            + f"WHERE Folders.FolderGroup = '{foldergroup}'"
+            + folderQuery2,
         )
         files_table.controls[0] = color_status_col(
             add_check_column(new_fileSQL.datatable)
@@ -101,7 +113,7 @@ def application(page: ft.Page):
                 if row.cells[6].content.value:
                     filelist.append(row.cells[1].content.value)
             update_file_assignments(worker_dropdown.value, filelist)
-            update_files_and_folders()
+            update_files_and_folders(visit=visit_dropdown_files.value)
             worker_dropdown.value = ""
             worker_dropdown_vetting.value = ""
             page.update()
@@ -112,10 +124,23 @@ def application(page: ft.Page):
             if row.cells[6].content.value:
                 filelist.append(row.cells[1].content.value)
         scrub_file_assignments(filelist)
-        update_files_and_folders()
+        update_files_and_folders(visit=visit_dropdown_files.value)
         worker_dropdown.value = ""
         worker_dropdown_vetting.value = ""
         page.update()
+
+    def on_visitfiles_dropdown_change(e):
+        visit = visit_dropdown_files.value
+        fileSQL = SQLDataTable(
+            "sqlite",
+            "audio.db",
+            statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
+        )
+        files_table.controls[0] = color_status_col(add_check_column(fileSQL.datatable))
+        page.update()
+
+    visit_dropdown_files = create_visit_dropdown()
+    visit_dropdown_files.on_change = on_visitfiles_dropdown_change
 
     files_table = ft.Column(
         [color_status_col(add_check_column(fileSQL.datatable))],
@@ -124,6 +149,7 @@ def application(page: ft.Page):
     )
     files_controls = ft.Column(
         [
+            visit_dropdown_files,
             worker_dropdown,
             ft.ElevatedButton(
                 text="Assign Selected to Worker", on_click=fileButtonClick
@@ -155,7 +181,7 @@ def application(page: ft.Page):
                 if row.cells[4].content.value:
                     folderlist.append(row.cells[2].content.value)
             update_folder_assignments(worker_dropdown.value, folderlist)
-            update_files_and_folders()
+            update_files_and_folders(foldergroup=foldergroup_dropdown.value)
             worker_dropdown.value = ""
             worker_dropdown_vetting.value = ""
             page.update()
@@ -166,16 +192,32 @@ def application(page: ft.Page):
             if row.cells[4].content.value:
                 folderlist.append(row.cells[2].content.value)
         scrub_folder_assignments(folderlist)
-        update_files_and_folders()
+        update_files_and_folders(foldergroup=foldergroup_dropdown.value)
         worker_dropdown.value = ""
         worker_dropdown_vetting.value = ""
         page.update()
+
+    def on_foldergroup_dropdown_change(e):
+        group = foldergroup_dropdown.value
+        folderSQL = SQLDataTable(
+            "sqlite",
+            "audio.db",
+            statement=folderQuery1
+            + f"WHERE Folders.FolderGroup = '{group}'"
+            + folderQuery2,
+        )
+        folders_table.controls[0] = add_check_column(folderSQL.datatable)
+        page.update()
+
+    foldergroup_dropdown = create_foldergroup_dropdown()
+    foldergroup_dropdown.on_change = on_foldergroup_dropdown_change
 
     folders_table = ft.Column(
         [add_check_column(folderSQL.datatable)], tight=True, scroll="auto"
     )
     folders_controls = ft.Column(
         [
+            foldergroup_dropdown,
             worker_dropdown,
             ft.ElevatedButton(
                 text="Assign Selected to Worker", on_click=folderButtonClick
@@ -309,7 +351,7 @@ def application(page: ft.Page):
             ft.Tab(
                 text="All Files",
                 content=ft.Container(
-                    content=files_tab, alignment=ft.alignment.top_left, padding=20
+                    content=files_tab, alignment=ft.alignment.center, padding=20
                 ),
             ),
             ft.Tab(

@@ -5,24 +5,6 @@ from db_updates import *
 import sys
 
 
-def get_drive_path(path):
-    drive_letter = path[0]
-    drive = f"{drive_letter}:"
-    try:
-        f = open("config.txt", "r")
-        try:
-            address = r"\\wcs-cifs.waisman.wisc.edu\wc"
-            drive_path = path.replace(drive, address)
-            if os.path.exists(drive_path):
-                return os.path.normpath(drive_path)
-            else:
-                return path
-        except:
-            return path
-    except:
-        return path
-
-
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db(data_folder="Data", overwrite_db=False):
     conn, cursor = make_conn()
@@ -30,8 +12,7 @@ def init_db(data_folder="Data", overwrite_db=False):
         base_dir = os.path.dirname(sys.executable)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_folder = get_drive_path(os.path.join(base_dir, data_folder))
-    print(data_folder)
+    data_folder = os.path.join(base_dir, data_folder)
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"
@@ -78,7 +59,8 @@ def init_db(data_folder="Data", overwrite_db=False):
          FolderID INTEGER PRIMARY KEY,
          FolderName VARCHAR(50),
          TotalFiles INT NOT NULL,
-         FolderPath VARCHAR(260)
+         FolderPath VARCHAR(260),
+         FolderGroup VARCHAR(10)
          )
          """
     )
@@ -96,37 +78,43 @@ def init_db(data_folder="Data", overwrite_db=False):
             (foldername,),
         )
         if cursor.fetchone()[0] == 0:
+            start = foldername[:2]
+            if start.isnumeric():
+                foldergroup = f"TD-{start}yo"
+            else:
+                foldergroup = f"CP-{start[0]}"
             cursor.execute(
                 """
-                INSERT INTO Folders (TotalFiles, FolderName, FolderPath) VALUES (?, ?, ?)
+                INSERT INTO Folders (TotalFiles, FolderName, FolderPath, FolderGroup) VALUES (?, ?, ?, ?)
                 """,
-                (totalfiles, foldername, folderpath),
+                (totalfiles, foldername, folderpath, foldergroup),
             )
         for path, _, files in os.walk(folderpath):
             for filename in files:
                 filepath = os.path.join(path, filename)
                 # If the file isn't in the database this inserts the file into the database
-                cursor.execute(
-                    """
-                    SELECT FolderID FROM Folders WHERE FolderName = ?
-                    """,
-                    (foldername,),
-                )
-                folderID = cursor.fetchone()[0]
-                filetype = filepath.split(os.sep)[-2].split(" ")[0]
-                cursor.execute(
-                    """
-                    SELECT exists(SELECT 1 FROM Files WHERE FileName = ?) AS row_exists
-                    """,
-                    (filename,),
-                )
-                if cursor.fetchone()[0] == 0:
+                if filepath[-3:].lower() == "wav":
                     cursor.execute(
                         """
-                        INSERT INTO Files (FolderID, FileName, FilePath, FileType) VALUES (?, ?, ?, ?)
+                        SELECT FolderID FROM Folders WHERE FolderName = ?
                         """,
-                        (folderID, filename, filepath, filetype),
+                        (foldername,),
                     )
+                    folderID = cursor.fetchone()[0]
+                    filetype = filepath.split(os.sep)[-2].split(" ")[0]
+                    cursor.execute(
+                        """
+                        SELECT exists(SELECT 1 FROM Files WHERE FileName = ?) AS row_exists
+                        """,
+                        (filename,),
+                    )
+                    if cursor.fetchone()[0] == 0:
+                        cursor.execute(
+                            """
+                            INSERT INTO Files (FolderID, FileName, FilePath, FileType) VALUES (?, ?, ?, ?)
+                            """,
+                            (folderID, filename, filepath, filetype),
+                        )
     commit_conn(conn, cursor)
 
 

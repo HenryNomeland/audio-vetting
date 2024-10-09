@@ -2,15 +2,18 @@ import flet as ft
 from simpledt import SQLDataTable
 from dt_updates import (
     create_worker_dropdown,
+    create_visit_dropdown,
     add_edit_column,
-    add_audacity_column,
+    add_audioedit_column,
     add_image_column,
     add_play_column,
+    add_pause_column,
+    add_pause_column,
     add_status_dropdown,
     refresh_db_status,
 )
-from db_updates import update_comments, get_filepath
-from playsound import playsound
+from db_updates import update_comments, get_filepath, generate_visitdropdown_options
+import winsound
 import os
 import matplotlib.pyplot as plt
 import librosa
@@ -22,39 +25,67 @@ import seaborn as sns
 
 def create_vetting_tab(page: ft.Page, update_files_and_folders):
     vettingQuery = """
-                    SELECT Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments
+                    SELECT Files.FileName, Workers.WorkerName, Files.FileType, Files.FileStatus, Files.Comments, Folders.FolderName
                     FROM Files
                     LEFT JOIN Workers ON Files.WorkerID = Workers.WorkerID
+                    LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
                     """
     worker_dropdown_vetting = create_worker_dropdown()
     worker_dropdown_vetting.options.insert(0, ft.dropdown.Option("All"))
+    visit_dropdown_vetting = create_visit_dropdown()
+    visit_dropdown_vetting.options.insert(0, ft.dropdown.Option("All"))
     sns.set_theme(
         style="whitegrid",
         rc={"axes.spines.right": False, "axes.spines.top": False, "axes.grid": False},
     )
 
-    def on_worker_dropdown_change(e):
-        worker = worker_dropdown_vetting.value
+    def get_vettingSQLWorker(worker, visit):
         if worker != "All":
-            vettingSQLWorker = SQLDataTable(
-                "sqlite",
-                "audio.db",
-                statement=vettingQuery + f"WHERE Workers.WorkerName = '{worker}'",
-            )
+            if visit != "All":
+                vettingSQLWorker = SQLDataTable(
+                    "sqlite",
+                    "audio.db",
+                    statement=vettingQuery
+                    + f"WHERE Workers.WorkerName = '{worker}' AND Folders.FolderName = '{visit}'",
+                )
+            else:
+                vettingSQLWorker = SQLDataTable(
+                    "sqlite",
+                    "audio.db",
+                    statement=vettingQuery + f"WHERE Workers.WorkerName = '{worker}'",
+                )
         else:
             vettingSQLWorker = SQLDataTable(
                 "sqlite",
                 "audio.db",
-                statement=vettingQuery,
+                statement=vettingQuery + f"WHERE Folders.FolderName = '{visit}'",
             )
-        vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
+        return vettingSQLWorker
+
+    def on_worker_dropdown_change(e):
+        worker = worker_dropdown_vetting.value
+        visit_dropdown_vetting.options = [
+            ft.dropdown.Option(name) for name in generate_visitdropdown_options(worker)
+        ]
         page.update()
 
     worker_dropdown_vetting.on_change = on_worker_dropdown_change
 
+    def on_visit_dropdown_change(e):
+        worker = worker_dropdown_vetting.value
+        visit = visit_dropdown_vetting.value
+        vettingSQLWorker = get_vettingSQLWorker(worker, visit)
+        vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
+        page.update()
+
+    visit_dropdown_vetting.on_change = on_visit_dropdown_change
+
     def play_function(file_name):
         filepath = get_filepath(file_name)
-        playsound(os.path.join(os.getcwd(), filepath))
+        winsound.PlaySound(os.path.join(os.getcwd(), filepath), winsound.SND_ASYNC)
+
+    def pause_function():
+        winsound.PlaySound(None, winsound.SND_PURGE)
 
     def image_function(file_name):
         filenamename = file_name.split(".")[0]
@@ -131,19 +162,9 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
 
         def execute_edit(e):
             update_comments(file_name, new_comments.value)
-            if worker_dropdown_vetting.value != "All":
-                vettingSQLWorker = SQLDataTable(
-                    "sqlite",
-                    "audio.db",
-                    statement=vettingQuery
-                    + f"WHERE Workers.WorkerName = '{worker_dropdown_vetting.value}'",
-                )
-            else:
-                vettingSQLWorker = SQLDataTable(
-                    "sqlite",
-                    "audio.db",
-                    statement=vettingQuery,
-                )
+            worker = worker_dropdown_vetting.value
+            visit = visit_dropdown_vetting.value
+            vettingSQLWorker = get_vettingSQLWorker(worker, visit)
             vetting_table.controls[0] = refresh_vetting_table(
                 vettingSQLWorker.datatable
             )
@@ -174,12 +195,15 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
 
     def refresh_vetting_table(dt):
         newtable = add_status_dropdown(
-            add_play_column(
-                add_image_column(
-                    add_audacity_column(add_edit_column(dt, edit_comments)),
-                    image_function,
+            add_pause_column(
+                add_play_column(
+                    add_image_column(
+                        add_audioedit_column(add_edit_column(dt, edit_comments)),
+                        image_function,
+                    ),
+                    play_function,
                 ),
-                play_function,
+                pause_function,
             ),
             status_function,
         )
@@ -192,6 +216,8 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         controls=[
             ft.Container(ft.Text("Select Worker:"), padding=10),
             ft.Container(worker_dropdown_vetting, padding=10),
+            ft.Container(ft.Text("Select Visit:"), padding=10),
+            ft.Container(visit_dropdown_vetting, padding=10),
         ],
         alignment=ft.MainAxisAlignment.START,
     )
