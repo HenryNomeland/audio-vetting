@@ -84,25 +84,28 @@ def audioedit_function(file_name):
     # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
     if os == "Windows":
         try:
-            subprocess.run(
-                [
-                    r"C:\Program Files (x86)\Adobe\Adobe Audition 2024\Adobe Audition.exe",
-                    filepath,
-                ]
-            )
-        except:
             try:
+                subprocess.run(
+                    [
+                        r"C:\Program Files\Adobe\Adobe Audition 2025\Adobe Audition.exe",
+                        filepath,
+                    ]
+                )
+            except:
                 subprocess.run(
                     [
                         r"C:\Program Files\Adobe\Adobe Audition 2024\Adobe Audition.exe",
                         filepath,
                     ]
                 )
+        except Exception as error:
+            print(error)
+            try:
+                subprocess.run([r"C:\Program Files\Audacity\Audacity.exe", filepath])
             except:
-                try:
-                    subprocess.run([r"C:\Program Files\Audacity\Audacity.exe"])
-                except:
-                    subprocess.run([r"C:\Program Files (x86)\Audacity\Audacity.exe"])
+                subprocess.run(
+                    [r"C:\Program Files (x86)\Audacity\Audacity.exe", filepath]
+                )
 
 
 def add_audioedit_column(data_table):
