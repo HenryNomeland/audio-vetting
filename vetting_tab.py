@@ -197,10 +197,10 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         newtable = add_status_dropdown(
             add_pause_column(
                 add_play_column(
-                    add_image_column(
-                        add_audioedit_column(add_edit_column(dt, edit_comments)),
-                        image_function,
-                    ),
+                    # add_image_column(
+                    add_audioedit_column(add_edit_column(dt, edit_comments)),
+                    #     image_function,
+                    # ),
                     play_function,
                 ),
                 pause_function,
