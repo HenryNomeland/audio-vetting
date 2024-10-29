@@ -3,7 +3,7 @@ import os
 
 
 def make_conn():
-    conn = sqlite3.connect("audio.db")
+    conn = sqlite3.connect(get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db")
     return conn, conn.cursor()
 
 
@@ -12,6 +12,23 @@ def commit_conn(conn, cursor):
     cursor.close()
     if conn:
         conn.close()
+
+
+def get_directorypath(directory):
+    if os.path.exists("C:" + directory[2:]):
+        return "C:" + directory[2:]
+    elif os.path.exists("X:" + directory[2:]):
+        return "X:" + directory[2:]
+    elif os.path.exists("Y:" + directory[2:]):
+        return "Y:" + directory[2:]
+    elif os.path.exists("W:" + directory[2:]):
+        return "W:" + directory[2:]
+    elif os.path.exists("Z:" + directory[2:]):
+        return "Z:" + directory[2:]
+    elif os.path.exists("\\\\wcs-cifs\\wc\\speech_data" + directory[2:]):
+        return "\\\\wcs-cifs\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("M:\\wc\\speech_data" + directory[2:]):
+        return "M:\\wc\\speech_data" + directory[2:]
 
 
 def get_filepath(filename):

@@ -12,7 +12,12 @@ from dt_updates import (
     add_status_dropdown,
     refresh_db_status,
 )
-from db_updates import update_comments, get_filepath, generate_visitdropdown_options
+from db_updates import (
+    update_comments,
+    get_filepath,
+    generate_visitdropdown_options,
+    get_directorypath,
+)
 import winsound
 import os
 import matplotlib.pyplot as plt
@@ -44,20 +49,20 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
             if visit != "All":
                 vettingSQLWorker = SQLDataTable(
                     "sqlite",
-                    "audio.db",
+                    get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
                     statement=vettingQuery
                     + f"WHERE Workers.WorkerName = '{worker}' AND Folders.FolderName = '{visit}'",
                 )
             else:
                 vettingSQLWorker = SQLDataTable(
                     "sqlite",
-                    "audio.db",
+                    get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
                     statement=vettingQuery + f"WHERE Workers.WorkerName = '{worker}'",
                 )
         else:
             vettingSQLWorker = SQLDataTable(
                 "sqlite",
-                "audio.db",
+                get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
                 statement=vettingQuery + f"WHERE Folders.FolderName = '{visit}'",
             )
         return vettingSQLWorker
@@ -210,7 +215,9 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         return newtable
 
     vettingSQLNULL = SQLDataTable(
-        "sqlite", "audio.db", statement=vettingQuery + "WHERE Files.FileName = ''"
+        "sqlite",
+        get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
+        statement=vettingQuery + "WHERE Files.FileName = ''",
     )
     vetting_row = ft.Row(
         controls=[
