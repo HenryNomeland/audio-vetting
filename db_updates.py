@@ -4,6 +4,7 @@ import os
 
 def make_conn():
     conn = sqlite3.connect(get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db")
+    conn = sqlite3.connect("audio.db")
     return conn, conn.cursor()
 
 

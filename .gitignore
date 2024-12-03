@@ -5,7 +5,6 @@ add_silence.py
 silence.wav
 releases
 test-vetting-env
-build
 config.txt
 *.ico
 *.spec

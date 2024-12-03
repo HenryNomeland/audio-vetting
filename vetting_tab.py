@@ -18,8 +18,8 @@ from db_updates import (
     generate_visitdropdown_options,
     get_directorypath,
 )
-import winsound
 import os
+from just_playback import Playback
 import matplotlib.pyplot as plt
 import librosa
 import io
@@ -87,10 +87,11 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
 
     def play_function(file_name):
         filepath = get_filepath(file_name)
-        winsound.PlaySound(os.path.join(os.getcwd(), filepath), winsound.SND_ASYNC)
+        playback.load_file(os.path.join(os.getcwd(), filepath))
+        playback.play()
 
     def pause_function():
-        winsound.PlaySound(None, winsound.SND_PURGE)
+        playback.pause()
 
     def image_function(file_name):
         filenamename = file_name.split(".")[0]
