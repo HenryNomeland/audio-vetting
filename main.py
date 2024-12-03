@@ -1,6 +1,5 @@
 import flet as ft
 from db_updates import make_conn, commit_conn
-import threading
 from db_initialization import init_db
 from simpledt import SQLDataTable
 from db_updates import *

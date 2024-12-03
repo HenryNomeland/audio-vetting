@@ -10,3 +10,4 @@ config.txt
 *.ico
 *.spec
 /dist/
+SampleData
