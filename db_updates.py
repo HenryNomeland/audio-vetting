@@ -1,10 +1,17 @@
 import sqlite3
 import os
+from sys import platform
 
 
 def make_conn():
-    conn = sqlite3.connect(get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db")
-    conn = sqlite3.connect("audio.db")
+    print(
+        os.path.abspath(
+            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db")
+        )
+    )
+    conn = sqlite3.connect(
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db")
+    )
     return conn, conn.cursor()
 
 
@@ -16,6 +23,12 @@ def commit_conn(conn, cursor):
 
 
 def get_directorypath(directory):
+    if platform == "linux" or platform == "linux2":
+        return os.path.join(
+            "..", "..", "..", "LINUXTESTING", os.path.join(*directory.split("\\")[1:])
+        )
+    if platform == "darwin":
+        directory = os.path.join(*directory.split("\\")[1:])
     if os.path.exists("C:" + directory[2:]):
         return "C:" + directory[2:]
     elif os.path.exists("X:" + directory[2:]):
@@ -42,6 +55,8 @@ def get_filepath(filename):
         (filename,),
     ).fetchone()[0]
     print(filepath)
+    if platform == "linux" or platform == "linux2":
+        return filepath
     if os.path.exists("C:" + filepath[2:]):
         return "C:" + filepath[2:]
     elif os.path.exists("X:" + filepath[2:]):
@@ -52,10 +67,10 @@ def get_filepath(filename):
         return "W:" + filepath[2:]
     elif os.path.exists("Z:" + filepath[2:]):
         return "Z:" + filepath[2:]
-    elif os.path.exists("\\\\wcs-cifs\\wc\\speech_data" + filepath[2:]):
-        return "\\\\wcs-cifs\\wc\\speech_data" + filepath[2:]
-    elif os.path.exists("M:\\wc\\speech_data" + filepath[2:]):
-        return "M:\\wc\\speech_data" + filepath[2:]
+    elif os.path.exists(os.path.join("wcs-cifs", "wc", "speech_data", filepath[2:])):
+        return os.path.join("wcs-cifs", "wc", "speech_data", filepath[2:])
+    elif os.path.exists(os.path.join("M:", "wc", "speech_data", filepath[2:])):
+        return os.path.join("M:", "wc", "speech_data", filepath[2:])
 
 
 def cycle_folders(data_directory):

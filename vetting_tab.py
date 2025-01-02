@@ -43,26 +43,31 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
         style="whitegrid",
         rc={"axes.spines.right": False, "axes.spines.top": False, "axes.grid": False},
     )
+    playback = Playback()
 
     def get_vettingSQLWorker(worker, visit):
         if worker != "All":
             if visit != "All":
                 vettingSQLWorker = SQLDataTable(
                     "sqlite",
-                    get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
+                    os.path.join(
+                        get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"
+                    ),
                     statement=vettingQuery
                     + f"WHERE Workers.WorkerName = '{worker}' AND Folders.FolderName = '{visit}'",
                 )
             else:
                 vettingSQLWorker = SQLDataTable(
                     "sqlite",
-                    get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
+                    os.path.join(
+                        get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"
+                    ),
                     statement=vettingQuery + f"WHERE Workers.WorkerName = '{worker}'",
                 )
         else:
             vettingSQLWorker = SQLDataTable(
                 "sqlite",
-                get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
+                os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
                 statement=vettingQuery + f"WHERE Folders.FolderName = '{visit}'",
             )
         return vettingSQLWorker
@@ -87,7 +92,8 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
 
     def play_function(file_name):
         filepath = get_filepath(file_name)
-        playback.load_file(os.path.join(os.getcwd(), filepath))
+        print("PRINTED FILEPATH: ", filepath)
+        playback.load_file(filepath)
         playback.play()
 
     def pause_function():
@@ -217,7 +223,7 @@ def create_vetting_tab(page: ft.Page, update_files_and_folders):
 
     vettingSQLNULL = SQLDataTable(
         "sqlite",
-        get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=vettingQuery + "WHERE Files.FileName = ''",
     )
     vetting_row = ft.Row(

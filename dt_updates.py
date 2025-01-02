@@ -2,7 +2,7 @@ import flet as ft
 from simpledt import SQLDataTable
 from db_updates import *
 import subprocess
-import platform
+from sys import platform
 
 
 def create_worker_dropdown():
@@ -80,9 +80,8 @@ def add_edit_column(data_table, edit_function):
 
 def audioedit_function(file_name):
     filepath = get_filepath(file_name)
-    os = platform.system()
     # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
-    if os == "Windows":
+    if platform == "Windows":
         try:
             try:
                 subprocess.run(
@@ -106,6 +105,30 @@ def audioedit_function(file_name):
                 subprocess.run(
                     [r"C:\Program Files (x86)\Audacity\Audacity.exe", filepath]
                 )
+    if platform == "darwin":
+        try:
+            try:
+                subprocess.run(
+                    [
+                        r"System/Applications/Adobe/Adobe Audition 2025/Adobe Audition.exe",
+                        filepath,
+                    ]
+                )
+            except:
+                subprocess.run(
+                    [
+                        r"System/Applications/Adobe/Adobe Audition 2024/Adobe Audition.exe",
+                        filepath,
+                    ]
+                )
+        except Exception as error:
+            print(error)
+            try:
+                subprocess.run([r"System/Applications/Audacity/Audacity.exe", filepath])
+            except:
+                subprocess.run([r"System/Applications/Audacity/Audacity.exe", filepath])
+    if platform == "linux" or platform == "linux2":
+        subprocess.run(["audacity", f"{filepath}"])
 
 
 def add_audioedit_column(data_table):

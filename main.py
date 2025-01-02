@@ -59,22 +59,19 @@ def application(page: ft.Page):
                   """
     fileSQL = SQLDataTable(
         "sqlite",
-        # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-        os.path.join(".", "audio.db"),
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=fileQuery + f"WHERE Folders.FolderName = '{get_default_visit()}'",
     )
     folderSQL = SQLDataTable(
         "sqlite",
-        # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-        os.path.join(".", "audio.db"),
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=folderQuery1
         + f"WHERE Folders.FolderGroup = '{get_default_foldergroup()}'"
         + folderQuery2,
     )
     workerSQL = SQLDataTable(
         "sqlite",
-        # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-        os.path.join(".", "audio.db"),
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=workerQuery,
     )
 
@@ -87,14 +84,12 @@ def application(page: ft.Page):
             foldergroup = get_default_foldergroup()
         new_fileSQL = SQLDataTable(
             "sqlite",
-            # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-            os.path.join(".", "audio.db"),
+            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
         )
         new_folderSQL = SQLDataTable(
             "sqlite",
-            # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-            os.path.join(".", "audio.db"),
+            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=folderQuery1
             + f"WHERE Folders.FolderGroup = '{foldergroup}'"
             + folderQuery2,
@@ -137,8 +132,7 @@ def application(page: ft.Page):
         visit = visit_dropdown_files.value
         fileSQL = SQLDataTable(
             "sqlite",
-            # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-            os.path.join(".", "audio.db"),
+            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
         )
         files_table.controls[0] = color_status_col(add_check_column(fileSQL.datatable))
@@ -206,8 +200,7 @@ def application(page: ft.Page):
         group = foldergroup_dropdown.value
         folderSQL = SQLDataTable(
             "sqlite",
-            # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-            os.path.join(".", "audio.db"),
+            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=folderQuery1
             + f"WHERE Folders.FolderGroup = '{group}'"
             + folderQuery2,
@@ -253,8 +246,7 @@ def application(page: ft.Page):
             add_worker(workerTF1.value, workerTF2.value)
             new_workerSQL = SQLDataTable(
                 "sqlite",
-                # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-                os.path.join(".", "audio.db"),
+                os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
                 statement=workerQuery,
             )
 
@@ -282,8 +274,7 @@ def application(page: ft.Page):
             delete_worker(worker_name)
             new_workerSQL = SQLDataTable(
                 "sqlite",
-                # get_directorypath("X:\\CHILD TD RSCH\\PRP") + "\\audio.db",
-                os.path.join(".", "audio.db"),
+                os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
                 statement=workerQuery,
             )
             workers_table.controls[0] = add_delete_column(

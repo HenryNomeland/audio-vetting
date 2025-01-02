@@ -8,8 +8,7 @@ import sys
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db(data_folder="Data", overwrite_db=False):
     conn, cursor = make_conn()
-    # base_dir = get_directorypath("X:\\CHILD TD RSCH\\PRP")
-    base_dir = "."
+    base_dir = get_directorypath("X:\\CHILD TD RSCH\\PRP")
     data_folder = os.path.join(base_dir, data_folder)
     print(data_folder)
 
