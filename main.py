@@ -100,9 +100,7 @@ def application(page: ft.Page):
         folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
         page.update()
 
-    vetting_tab, worker_dropdown_vetting = create_vetting_tab(
-        page, update_files_and_folders
-    )
+    vetting_tab, worker_dropdown_vetting = create_vetting_tab(page)
     worker_dropdown = create_worker_dropdown()
 
     def fileButtonClick(e):
@@ -344,7 +342,7 @@ def application(page: ft.Page):
             ft.Tab(
                 text="Vetting",
                 content=ft.Container(
-                    content=vetting_tab, alignment=ft.alignment.top_left, padding=20
+                    content=vetting_tab, alignment=ft.alignment.center, padding=20
                 ),
             ),
             ft.Tab(
@@ -366,6 +364,7 @@ def application(page: ft.Page):
                 ),
             ),
         ],
+        on_click=lambda e: update_files_and_folders(),
         expand=1,
     )
     page.add(tabs)

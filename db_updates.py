@@ -4,14 +4,10 @@ from sys import platform
 
 
 def make_conn():
-    print(
-        os.path.abspath(
-            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db")
-        )
-    )
     conn = sqlite3.connect(
         os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db")
     )
+    conn.execute("PRAGMA journal_mode=WAL;")
     return conn, conn.cursor()
 
 
@@ -54,7 +50,6 @@ def get_filepath(filename):
         """,
         (filename,),
     ).fetchone()[0]
-    print(filepath)
     if platform == "linux" or platform == "linux2":
         return filepath
     if os.path.exists("C:" + filepath[2:]):
@@ -78,7 +73,7 @@ def cycle_folders(data_directory):
     for path, _, _ in os.walk(data_directory):
         pathlist = path.split(os.sep)
         if len(pathlist) > 2:
-            if pathlist[-3] == os.path.basename(data_directory):
+            if pathlist[-4] == os.path.basename(data_directory):
                 folderpaths.append(path)
     return folderpaths
 
@@ -161,15 +156,24 @@ def clear_assignments(workerID):
     commit_conn(conn, cursor)
 
 
-def update_comments(filename, comments):
+def update_comments(filename, foldername, filetype, comments):
     conn, cursor = make_conn()
     cursor.execute(
+        f"""
+        SELECT FolderID FROM Folders
+        WHERE FolderName = '{foldername}'
         """
+    )
+    folderid = cursor.fetchone()[0]
+    cursor.execute(
+        f"""
         UPDATE Files
-        SET Comments = ?
-        WHERE FileName = ?
-        """,
-        (comments, filename),
+        SET Comments = '{comments}'
+        WHERE 
+            FileName = '{filename}' AND
+            FileType = '{filetype}' AND
+            FolderID = '{folderid}'
+        """
     )
     commit_conn(conn, cursor)
 
@@ -199,6 +203,60 @@ def generate_visitdropdown_options(worker):
         cursor.execute(
             f"""
             SELECT DISTINCT FolderName FROM Folders
+            """
+        )
+    visit_list = [row[0] for row in cursor.fetchall()]
+    commit_conn(conn, cursor)
+    return visit_list
+
+
+def generate_incompletevisitdropdown_options(worker):
+    conn, cursor = make_conn()
+    if worker != "All":
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Workers
+            LEFT JOIN Files
+            ON Workers.WorkerID = Files.WorkerID
+            LEFT JOIN Folders
+            ON Files.FolderID = Folders.FolderID
+            WHERE Workers.WorkerName = '{worker}' AND Files.FileStatus = 'Incomplete'
+            """
+        )
+    else:
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Folders
+            LEFT JOIN Files
+            ON Folders.FolderID = Files.FolderID
+            WHERE Files.FileStatus = 'Incomplete'
+            """
+        )
+    visit_list = [row[0] for row in cursor.fetchall()]
+    commit_conn(conn, cursor)
+    return visit_list
+
+
+def generate_completevisitdropdown_options(worker):
+    conn, cursor = make_conn()
+    if worker != "All":
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Workers
+            LEFT JOIN Files
+            ON Workers.WorkerID = Files.WorkerID
+            LEFT JOIN Folders
+            ON Files.FolderID = Folders.FolderID
+            WHERE Workers.WorkerName = '{worker}' AND Files.FileStatus != 'Incomplete'
+            """
+        )
+    else:
+        cursor.execute(
+            f"""
+            SELECT DISTINCT FolderName FROM Folders
+            LEFT JOIN Files
+            ON Folders.FolderID = Files.FolderID
+            WHERE Files.FileStatus != 'Incomplete'
             """
         )
     visit_list = [row[0] for row in cursor.fetchall()]
@@ -312,28 +370,39 @@ def scrub_file_assignments(filelist):
     commit_conn(conn, cursor)
 
 
-def get_file_status(filename):
+def get_file_status(filename, foldername, filetype):
     conn, cursor = make_conn()
     cursor.execute(
         """
         SELECT FileStatus
         FROM Files
-        WHERE FileName = ?
+        LEFT JOIN Folders ON Files.FolderID = Folders.FolderID
+        WHERE Files.FileName = ? AND Folders.FolderName = ? AND Files.FileType = ?
         """,
-        (filename,),
+        (filename, foldername, filetype),
     )
     status = cursor.fetchone()[0]
     return status
 
 
-def refresh_db_status(filename, filestatus):
+def refresh_db_status(filename, foldername, filetype, filestatus):
     conn, cursor = make_conn()
     cursor.execute(
         f"""
+        SELECT FolderID FROM Folders
+        WHERE FolderName = '{foldername}'
+        """
+    )
+    folderid = cursor.fetchone()[0]
+    cursor.execute(
+        f"""
         UPDATE Files
-        SET FileStatus = '{filestatus}' 
-        WHERE FileName = '{filename}' 
-        """,
+        SET FileStatus = '{filestatus}'
+        WHERE 
+            FileName = '{filename}' AND
+            FileType = '{filetype}' AND
+            FolderID = '{folderid}'
+        """
     )
     commit_conn(conn, cursor)
 

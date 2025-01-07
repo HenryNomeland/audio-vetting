@@ -7,18 +7,38 @@ from sys import platform
 
 def create_worker_dropdown():
     worker_names = generate_dropdown_options()
+    option_list = [ft.dropdown.Option("All")] + [
+        ft.dropdown.Option(name) for name in worker_names
+    ]
     return ft.Dropdown(
         label="Select Worker",
-        options=[ft.dropdown.Option(name) for name in worker_names],
+        options=option_list,
+        autofocus=True,
     )
 
 
-def create_visit_dropdown():
-    visit_names = generate_visitdropdown_options("All")
-    return ft.Dropdown(
-        label="Select Visit",
-        options=[ft.dropdown.Option(name) for name in visit_names],
-    )
+def create_visit_dropdown(label_arg="Select Visit", indicator=None):
+    if not indicator:
+        visit_names = generate_visitdropdown_options("All")
+        return ft.Dropdown(
+            label=label_arg,
+            options=[ft.dropdown.Option(name) for name in visit_names],
+            autofocus=True,
+        )
+    if indicator == "complete":
+        visit_names = generate_completevisitdropdown_options("All")
+        return ft.Dropdown(
+            label=label_arg,
+            options=[ft.dropdown.Option(name) for name in visit_names],
+            autofocus=True,
+        )
+    if indicator == "incomplete":
+        visit_names = generate_incompletevisitdropdown_options("All")
+        return ft.Dropdown(
+            label=label_arg,
+            options=[ft.dropdown.Option(name) for name in visit_names],
+            autofocus=True,
+        )
 
 
 def create_foldergroup_dropdown():
@@ -68,8 +88,12 @@ def add_edit_column(data_table, edit_function):
         edit_button = ft.IconButton(
             icon=ft.icons.EDIT,
             icon_color="blue",
-            on_click=lambda e, filename=row.cells[0].content.value: edit_function(
-                filename
+            on_click=lambda e, filename=row.cells[
+                0
+            ].content.value, foldername=row.cells[5].content.value, filetype=row.cells[
+                2
+            ].content.value: edit_function(
+                filename, foldername, filetype
             ),
         )
         updated_row = row.cells + [ft.DataCell(edit_button)]
@@ -217,14 +241,22 @@ def add_status_dropdown(data_table, status_function):
                 ft.dropdown.Option("Complete"),
                 ft.dropdown.Option("Flagged"),
             ],
-            on_change=lambda e, filename=row.cells[0].content.value: status_function(
-                e, filename
+            on_change=lambda e, filename=row.cells[
+                0
+            ].content.value, foldername=row.cells[5].content.value, filetype=row.cells[
+                2
+            ].content.value: status_function(
+                e, filename, foldername, filetype
             ),
             text_style=ft.TextStyle(size=13, color=ft.colors.BLACK),
             content_padding=ft.Padding(6, 0, 2, 5),
             border=ft.InputBorder.NONE,
         )
-        status_dropdown.value = get_file_status(row.cells[0].content.value)
+        status_dropdown.value = get_file_status(
+            row.cells[0].content.value,
+            row.cells[5].content.value,
+            row.cells[2].content.value,
+        )
         updated_row = row.cells
         if status_dropdown.value == "Incomplete":
             updated_cell = ft.Container(

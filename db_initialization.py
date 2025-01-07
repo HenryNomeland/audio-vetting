@@ -10,7 +10,6 @@ def init_db(data_folder="Data", overwrite_db=False):
     conn, cursor = make_conn()
     base_dir = get_directorypath("X:\\CHILD TD RSCH\\PRP")
     data_folder = os.path.join(base_dir, data_folder)
-    print(data_folder)
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"
@@ -64,7 +63,8 @@ def init_db(data_folder="Data", overwrite_db=False):
     )
 
     for folderpath in cycle_folders(data_folder):
-        foldername = os.path.basename(folderpath)
+        foldername = folderpath.split(os.sep)
+        foldername = foldername[-2] + f"-v{foldername[-1][-2:]}"
         totalfiles = 0
         for path, _, files in os.walk(folderpath):
             totalfiles += len(files)
@@ -102,9 +102,9 @@ def init_db(data_folder="Data", overwrite_db=False):
                     filetype = filepath.split(os.sep)[-2].split(" ")[0]
                     cursor.execute(
                         """
-                        SELECT exists(SELECT 1 FROM Files WHERE FileName = ?) AS row_exists
+                        SELECT exists(SELECT 1 FROM Files WHERE FilePath = ?) AS row_exists
                         """,
-                        (filename,),
+                        (filepath,),
                     )
                     if cursor.fetchone()[0] == 0:
                         cursor.execute(
