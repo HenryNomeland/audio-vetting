@@ -5,7 +5,6 @@ from dt_updates import (
     create_visit_dropdown,
     add_edit_column,
     add_audioedit_column,
-    add_image_column,
     add_play_column,
     add_pause_column,
     add_pause_column,
@@ -22,14 +21,6 @@ from db_updates import (
 import os
 from just_playback import Playback
 
-# import matplotlib.pyplot as plt
-import librosa
-import io
-import base64
-import numpy as np
-
-# import seaborn as sns
-
 
 def create_vetting_tab(page: ft.Page):
     vettingQuery = """
@@ -45,10 +36,6 @@ def create_vetting_tab(page: ft.Page):
     completed_dropdown_vetting = create_visit_dropdown(
         label_arg="Completed Visits", indicator="complete"
     )
-    # sns.set_theme(
-    #     style="whitegrid",
-    #     rc={"axes.spines.right": False, "axes.spines.top": False, "axes.grid": False},
-    # )
     playback = Playback()
 
     def get_vettingSQLWorker(visit):
@@ -77,12 +64,14 @@ def create_vetting_tab(page: ft.Page):
         visit = visit_dropdown_vetting.value
         vettingSQLWorker = get_vettingSQLWorker(visit)
         vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
+        on_worker_dropdown_change(e)
         page.update()
 
     def on_completed_dropdown_change(e):
         visit = completed_dropdown_vetting.value
         vettingSQLWorker = get_vettingSQLWorker(visit)
         vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
+        on_worker_dropdown_change(e)
         page.update()
 
     visit_dropdown_vetting.on_change = on_visit_dropdown_change
@@ -95,73 +84,6 @@ def create_vetting_tab(page: ft.Page):
 
     def pause_function():
         playback.pause()
-
-    # def image_function(file_name):
-    #     filenamename = file_name.split(".")[0]
-    #     if file_name == "":
-    #         fig = plt.figure()
-    #     else:
-    #         # plotting the in-progress screen
-    #         fig, ax = plt.subplots()
-    #         ax.set_xlim(0, 1)
-    #         ax.set_ylim(0, 1)
-    #         ax.set_aspect("equal")
-    #         ax.axis("off")
-    #         ax.text(
-    #             0.5,
-    #             0.5,
-    #             "Plotting in Progress...",
-    #             fontsize=15,
-    #             ha="center",
-    #             va="center",
-    #         )
-    #         fig.patch.set_alpha(0)
-    #         buf = io.BytesIO()
-    #         plt.savefig(buf, format="png", transparent=True)
-    #         buf.seek(0)
-    #         plt.close(fig)
-    #         img_str = base64.b64encode(buf.read()).decode("utf-8")
-    #         if file_name == "":
-    #             return img_str
-    #         soundplot.src_base64 = img_str
-    #         page.update()
-    #         # plotting the actual plot
-    #         filepath = get_filepath(file_name)
-    #         y, sr = librosa.load(filepath)
-    #         fig, ax = plt.subplots(nrows=2, sharex=True)
-    #         librosa.display.waveshow(y, sr=sr, ax=ax[0], alpha=0.5)
-    #         ax[0].set(title=f"Singular Waveform - {filenamename}")
-    #         ax[0].set_xlabel("")
-    #         ax[0].label_outer()
-    #         hop_length = 1024
-    #         D = librosa.amplitude_to_db(
-    #             np.abs(librosa.stft(y, hop_length=hop_length)), ref=np.max
-    #         )
-    #         librosa.display.specshow(
-    #             D,
-    #             y_axis="log",
-    #             sr=sr,
-    #             hop_length=hop_length,
-    #             x_axis="time",
-    #             ax=ax[1],
-    #             cmap="gray_r",
-    #         )
-    #         ax[1].set(title=f"Spectrogram - {filenamename}")
-    #         ax[1].set_xlabel("Time (s)")
-    #         ax[1].label_outer()
-    #         plt.subplots_adjust(
-    #             left=0.125, right=0.9, bottom=0.1, top=0.9, wspace=0.4, hspace=0.2
-    #         )
-    #         fig.set_size_inches(13, 13)
-    #     buf = io.BytesIO()
-    #     plt.savefig(buf, format="png", transparent=True)
-    #     buf.seek(0)
-    #     plt.close(fig)
-    #     img_str = base64.b64encode(buf.read()).decode("utf-8")
-    #     if file_name == "":
-    #         return img_str
-    #     soundplot.src_base64 = img_str
-    #     page.update()
 
     def edit_comments(filename, foldername, filetype):
         def close_dlg(e):
@@ -203,10 +125,7 @@ def create_vetting_tab(page: ft.Page):
         newtable = add_status_dropdown(
             add_pause_column(
                 add_play_column(
-                    # add_image_column(
                     add_audioedit_column(add_edit_column(dt, edit_comments)),
-                    #     image_function,
-                    # ),
                     play_function,
                 ),
                 pause_function,
@@ -214,6 +133,47 @@ def create_vetting_tab(page: ft.Page):
             status_function,
         )
         return newtable
+
+    def updateClick(e, filetype):
+        def close_dlg(e):
+            page.close(warning_dlg)
+
+        def execute_update(e):
+            for row in vetting_table.controls[0].rows:
+                if row.cells[2].content.value == filetype:
+                    if row.cells[3].content.content.value == "Incomplete":
+                        refresh_db_status(
+                            row.cells[0].content.value,
+                            row.cells[5].content.value,
+                            filetype,
+                            "Complete",
+                        )
+                    else:
+                        refresh_db_status(
+                            row.cells[0].content.value,
+                            row.cells[5].content.value,
+                            filetype,
+                            "Incomplete",
+                        )
+            vettingSQLWorker = get_vettingSQLWorker(
+                vetting_table.controls[0].rows[0].cells[5].content.value
+            )
+            vetting_table.controls[0] = refresh_vetting_table(
+                vettingSQLWorker.datatable
+            )
+            page.update()
+            close_dlg(e)
+
+        warning_dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirm or cancel the status update:"),
+            actions=[
+                ft.TextButton("Update", on_click=execute_update),
+                ft.TextButton("Cancel", on_click=close_dlg),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.open(warning_dlg)
 
     vettingSQLNULL = SQLDataTable(
         "sqlite",
@@ -226,7 +186,37 @@ def create_vetting_tab(page: ft.Page):
             ft.Container(visit_dropdown_vetting, padding=10),
             ft.Container(completed_dropdown_vetting, padding=10),
         ],
-        alignment=ft.MainAxisAlignment.START,
+        alignment=ft.MainAxisAlignment.CENTER,
+    )
+    vetting_buttons = ft.Row(
+        [
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Toggle Long TOCS Status", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                on_click=lambda e: updateClick(e, "Long"),
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)),
+            ),
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Toggle Short TOCS Status", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                on_click=lambda e: updateClick(e, "Short"),
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)),
+            ),
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Toggle SSS Status", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                text="Toggle Short SSS Complete",
+                on_click=lambda e: updateClick(e, "SSS"),
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)),
+            ),
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
     )
     vetting_table = ft.Row(
         [refresh_vetting_table(vettingSQLNULL.datatable)],
@@ -234,7 +224,7 @@ def create_vetting_tab(page: ft.Page):
     )
     vetting_controls = ft.Container(
         ft.Column(
-            [vetting_row, vetting_table],
+            [vetting_row, vetting_buttons, vetting_table],
             scroll="auto",
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.START,
@@ -242,20 +232,11 @@ def create_vetting_tab(page: ft.Page):
         ),
         padding=ft.Padding(30, 50, 0, 50),
     )
-    # soundplot = ft.Image(src=image_function(""))
 
-    # vetting_output = ft.Column(
-    #     [ft.Container(content=soundplot, alignment=ft.alignment.center)],
-    #     scroll="auto",
-    #     expand=True,
-    #     alignment=ft.MainAxisAlignment.CENTER,
-    #     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    # )
     vetting_tab = ft.Row(
-        # controls=[vetting_controls, vetting_output],
         controls=[vetting_controls],
         alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.START,
         spacing=30,
     )
     return vetting_tab, worker_dropdown_vetting

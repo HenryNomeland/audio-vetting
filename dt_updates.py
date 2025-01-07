@@ -174,25 +174,6 @@ def add_audioedit_column(data_table):
     return new_data_table
 
 
-def add_image_column(data_table, image_function):
-    new_columns = data_table.columns.copy()
-    new_rows = data_table.rows.copy()
-    new_columns.append(ft.DataColumn(ft.Text("Plot")))
-    updated_rows = []
-    for row in new_rows:
-        image_button = ft.IconButton(
-            icon=ft.icons.IMAGE_OUTLINED,
-            icon_color="green",
-            on_click=lambda e, filename=row.cells[0].content.value: image_function(
-                filename
-            ),
-        )
-        updated_row = row.cells + [ft.DataCell(image_button)]
-        updated_rows.append(ft.DataRow(cells=updated_row))
-    new_data_table = ft.DataTable(columns=new_columns, rows=updated_rows)
-    return new_data_table
-
-
 def add_play_column(data_table, play_function):
     new_columns = data_table.columns.copy()
     new_rows = data_table.rows.copy()
