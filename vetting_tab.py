@@ -10,6 +10,8 @@ from dt_updates import (
     add_pause_column,
     add_status_dropdown,
     refresh_db_status,
+    audioedit_function,
+    audition_start,
 )
 from db_updates import (
     update_comments,
@@ -135,10 +137,7 @@ def create_vetting_tab(page: ft.Page):
         return newtable
 
     def updateClick(e, filetype):
-        def close_dlg(e):
-            page.close(warning_dlg)
-
-        def execute_update(e):
+        def status_update_batched(filetype):
             for row in vetting_table.controls[0].rows:
                 if row.cells[2].content.value == filetype:
                     if row.cells[3].content.content.value == "Incomplete":
@@ -155,25 +154,34 @@ def create_vetting_tab(page: ft.Page):
                             filetype,
                             "Incomplete",
                         )
-            vettingSQLWorker = get_vettingSQLWorker(
-                vetting_table.controls[0].rows[0].cells[5].content.value
-            )
-            vetting_table.controls[0] = refresh_vetting_table(
-                vettingSQLWorker.datatable
-            )
-            page.update()
-            close_dlg(e)
 
-        warning_dlg = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirm or cancel the status update:"),
-            actions=[
-                ft.TextButton("Update", on_click=execute_update),
-                ft.TextButton("Cancel", on_click=close_dlg),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
+        if filetype == "Both":
+            status_update_batched("Long")
+            status_update_batched("Short")
+        else:
+            status_update_batched(filetype)
+        vettingSQLWorker = get_vettingSQLWorker(
+            vetting_table.controls[0].rows[0].cells[5].content.value
         )
-        page.open(warning_dlg)
+        vetting_table.controls[0] = refresh_vetting_table(vettingSQLWorker.datatable)
+        page.update()
+
+    def auditionClick(e, filetype):
+        def audition_batched(filetype):
+            for row in vetting_table.controls[0].rows:
+                if row.cells[2].content.value == filetype:
+                    audioedit_function(row.cells[0].content.value)
+
+        def auditionExecute():
+            audition_start()
+            if filetype == "STOCS":
+                audition_batched("Long")
+                audition_batched("Short")
+            else:
+                audition_batched("SSS")
+            return None
+
+        auditionExecute()
 
     vettingSQLNULL = SQLDataTable(
         "sqlite",
@@ -185,6 +193,37 @@ def create_vetting_tab(page: ft.Page):
             ft.Container(worker_dropdown_vetting, padding=10),
             ft.Container(visit_dropdown_vetting, padding=10),
             ft.Container(completed_dropdown_vetting, padding=10),
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
+    )
+    audio_buttons = ft.Row(
+        [
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Open All STOCS Files in Audition", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                on_click=lambda e: auditionClick(e, "STOCS"),
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=5),
+                    color=ft.colors.PINK_900,
+                    bgcolor=ft.colors.PINK_50,
+                ),
+                width=400,
+            ),
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Open All SSS Files in Audition", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                on_click=lambda e: auditionClick(e, "SSS"),
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=5),
+                    color=ft.colors.PINK_900,
+                    bgcolor=ft.colors.PINK_50,
+                ),
+                width=400,
+            ),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
     )
@@ -208,6 +247,14 @@ def create_vetting_tab(page: ft.Page):
             ),
             ft.ElevatedButton(
                 content=ft.Container(
+                    ft.Text(value="Toggle All TOCS Status", size=16),
+                    padding=ft.padding.all(10),
+                ),
+                on_click=lambda e: updateClick(e, "Both"),
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=5)),
+            ),
+            ft.ElevatedButton(
+                content=ft.Container(
                     ft.Text(value="Toggle SSS Status", size=16),
                     padding=ft.padding.all(10),
                 ),
@@ -224,7 +271,7 @@ def create_vetting_tab(page: ft.Page):
     )
     vetting_controls = ft.Container(
         ft.Column(
-            [vetting_row, vetting_buttons, vetting_table],
+            [vetting_row, audio_buttons, vetting_buttons, vetting_table],
             scroll="auto",
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.START,

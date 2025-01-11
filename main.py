@@ -1,6 +1,4 @@
 import flet as ft
-from db_updates import make_conn, commit_conn
-from db_initialization import init_db
 from simpledt import SQLDataTable
 from db_updates import *
 from dt_updates import *
@@ -8,25 +6,6 @@ from vetting_tab import *
 
 
 def main(page: ft.Page):
-    page.add(
-        ft.Container(
-            ft.Text("Syncing network drives to Sqlite database...", size=20),
-            alignment=ft.alignment.center,
-            width=page.width,
-            height=page.height,
-        )
-    )
-    page.update()
-    update_sqliteDB(page)
-
-
-def update_sqliteDB(page: ft.Page):
-    init_db()
-    page.clean()
-    application(page)
-
-
-def application(page: ft.Page):
     page.title = "Audio Vetting Application"
     page.window.height = None
     page.window.width = None

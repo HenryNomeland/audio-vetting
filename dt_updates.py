@@ -1,8 +1,9 @@
 import flet as ft
-from simpledt import SQLDataTable
 from db_updates import *
 import subprocess
 from sys import platform
+
+print(platform)
 
 
 def create_worker_dropdown():
@@ -102,10 +103,56 @@ def add_edit_column(data_table, edit_function):
     return new_data_table
 
 
+def audition_start():
+    # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
+    if platform == "Windows" or platform == "win32":
+        try:
+            try:
+                subprocess.Popen(
+                    [
+                        r"C:\Program Files\Adobe\Adobe Audition 2025\Adobe Audition.exe",
+                    ]
+                )
+            except:
+                subprocess.Popen(
+                    [
+                        r"C:\Program Files\Adobe\Adobe Audition 2024\Adobe Audition.exe",
+                    ]
+                )
+        except Exception as error:
+            print(error)
+            try:
+                subprocess.Popen([r"C:\Program Files\Audacity\Audacity.exe"])
+            except:
+                subprocess.Popen([r"C:\Program Files (x86)\Audacity\Audacity.exe"])
+    if platform == "darwin":
+        try:
+            try:
+                subprocess.Popen(
+                    [
+                        r"System/Applications/Adobe/Adobe Audition 2025/Adobe Audition.exe",
+                    ]
+                )
+            except:
+                subprocess.Popen(
+                    [
+                        r"System/Applications/Adobe/Adobe Audition 2024/Adobe Audition.exe",
+                    ]
+                )
+        except Exception as error:
+            print(error)
+            try:
+                subprocess.Popen([r"System/Applications/Audacity/Audacity.exe"])
+            except:
+                subprocess.Popen([r"System/Applications/Audacity/Audacity.exe"])
+    if platform == "linux" or platform == "linux2":
+        subprocess.run(["audacity"])
+
+
 def audioedit_function(file_name):
     filepath = get_filepath(file_name)
     # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
-    if platform == "Windows":
+    if platform == "Windows" or platform == "win32":
         try:
             try:
                 subprocess.run(

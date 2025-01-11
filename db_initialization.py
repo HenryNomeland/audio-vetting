@@ -102,19 +102,42 @@ def init_db(data_folder="Data", overwrite_db=False):
                     filetype = filepath.split(os.sep)[-2].split(" ")[0]
                     cursor.execute(
                         """
-                        SELECT exists(SELECT 1 FROM Files WHERE FilePath = ?) AS row_exists
+                        SELECT exists(SELECT 1 FROM Files WHERE FileName = ? AND FileType = ? AND FolderID = ?) AS row_exists
                         """,
-                        (filepath,),
+                        (filename, filetype, folderID),
                     )
                     if cursor.fetchone()[0] == 0:
+                        print("New file being added to the database: ", filename)
                         cursor.execute(
                             """
                             INSERT INTO Files (FolderID, FileName, FilePath, FileType) VALUES (?, ?, ?, ?)
                             """,
                             (folderID, filename, filepath, filetype),
                         )
+                    # Uncomment to deal with that one weird disaster situation:
+                    # else:
+                    #     cursor.execute(
+                    #         """
+                    #         SELECT exists(SELECT 1 FROM Files WHERE FilePath != ? AND FileName = ? AND FileType = ? AND FolderID = ?) AS row_exists
+                    #         """,
+                    #         (filepath, filename, filetype, folderID),
+                    #     )
+                    #     if cursor.fetchone()[0] == 1:
+                    #         cursor.execute(
+                    #             """
+                    #             SELECT FilePath FROM Files WHERE FilePath != ? AND FileName = ? AND FileType = ? AND FolderID = ?
+                    #             """,
+                    #             (filepath, filename, filetype, folderID),
+                    #         )
+                    #         print("Deleting the following: ", cursor.fetchone()[0])
+                    #         cursor.execute(
+                    #             """
+                    #             DELETE FROM Files WHERE FilePath != ? AND FileName = ? AND FileType = ? AND FolderID = ?
+                    #             """,
+                    #             (filepath, filename, filetype, folderID),
+                    #         )
     commit_conn(conn, cursor)
 
 
 if __name__ == "__main__":
-    init_db("Data", True)
+    init_db("Data", False)
