@@ -1,8 +1,38 @@
 import flet as ft
-from simpledt import SQLDataTable
 from db_updates import *
 from dt_updates import *
 from vetting_tab import *
+import pandas as pd
+from typing import List
+
+
+class SQLDataTable:
+    def __init__(self, statement: str) -> None:
+        self.statement = statement
+        self._set_datatable()
+
+    def _set_datatable(self) -> None:
+        df = self._df
+        dt_columns = [ft.DataColumn(ft.Text(col)) for col in df.columns]
+        dt_rows = [
+            ft.DataRow([ft.DataCell(ft.Text(str(cell))) for cell in row])
+            for row in df.values
+        ]
+        self.datatable = ft.DataTable(columns=dt_columns, rows=dt_rows)
+
+    @property
+    def _df(self) -> pd.DataFrame:
+        with make_conn() as conn:
+            df = pd.read_sql_query(self.statement, conn)
+        return df
+
+    @property
+    def _cols(self) -> List[str]:
+        return self._df.columns.to_list()
+
+    @property
+    def _rows(self) -> List[List[str]]:
+        return self._df.values.tolist()
 
 
 def main(page: ft.Page):
@@ -37,22 +67,19 @@ def main(page: ft.Page):
                   FROM Workers
                   """
     fileSQL = SQLDataTable(
-        "sqlite",
-        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=fileQuery + f"WHERE Folders.FolderName = '{get_default_visit()}'",
     )
+    fileDataTable = fileSQL.datatable
     folderSQL = SQLDataTable(
-        "sqlite",
-        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=folderQuery1
         + f"WHERE Folders.FolderGroup = '{get_default_foldergroup()}'"
         + folderQuery2,
     )
+    folderDataTable = folderSQL.datatable
     workerSQL = SQLDataTable(
-        "sqlite",
-        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
         statement=workerQuery,
     )
+    workerDataTable = workerSQL.datatable
 
     def update_files_and_folders(
         visit=get_default_visit(), foldergroup=get_default_foldergroup()
@@ -62,21 +89,17 @@ def main(page: ft.Page):
         if foldergroup == "":
             foldergroup = get_default_foldergroup()
         new_fileSQL = SQLDataTable(
-            "sqlite",
-            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
         )
+        new_fileDataTable = new_fileSQL.datatable
         new_folderSQL = SQLDataTable(
-            "sqlite",
-            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=folderQuery1
             + f"WHERE Folders.FolderGroup = '{foldergroup}'"
             + folderQuery2,
         )
-        files_table.controls[0] = color_status_col(
-            add_check_column(new_fileSQL.datatable)
-        )
-        folders_table.controls[0] = add_check_column(new_folderSQL.datatable)
+        new_folderDataTable = new_folderSQL.datatable
+        files_table.controls[0] = color_status_col(add_check_column(new_fileDataTable))
+        folders_table.controls[0] = add_check_column(new_folderDataTable)
         page.update()
 
     vetting_tab, worker_dropdown_vetting = create_vetting_tab(page)
@@ -108,18 +131,17 @@ def main(page: ft.Page):
     def on_visitfiles_dropdown_change(e):
         visit = visit_dropdown_files.value
         fileSQL = SQLDataTable(
-            "sqlite",
-            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=fileQuery + f"WHERE Folders.FolderName = '{visit}'",
         )
-        files_table.controls[0] = color_status_col(add_check_column(fileSQL.datatable))
+        fileDataTable = fileSQL.datatable
+        files_table.controls[0] = color_status_col(add_check_column(fileDataTable))
         page.update()
 
     visit_dropdown_files = create_visit_dropdown()
     visit_dropdown_files.on_change = on_visitfiles_dropdown_change
 
     files_table = ft.Column(
-        [color_status_col(add_check_column(fileSQL.datatable))],
+        [color_status_col(add_check_column(fileDataTable))],
         tight=True,
         scroll="auto",
     )
@@ -176,20 +198,19 @@ def main(page: ft.Page):
     def on_foldergroup_dropdown_change(e):
         group = foldergroup_dropdown.value
         folderSQL = SQLDataTable(
-            "sqlite",
-            os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
             statement=folderQuery1
             + f"WHERE Folders.FolderGroup = '{group}'"
             + folderQuery2,
         )
-        folders_table.controls[0] = add_check_column(folderSQL.datatable)
+        folderDataTable = folderSQL.datatable
+        folders_table.controls[0] = add_check_column(folderDataTable)
         page.update()
 
     foldergroup_dropdown = create_foldergroup_dropdown()
     foldergroup_dropdown.on_change = on_foldergroup_dropdown_change
 
     folders_table = ft.Column(
-        [add_check_column(folderSQL.datatable)], tight=True, scroll="auto"
+        [add_check_column(folderDataTable)], tight=True, scroll="auto"
     )
     folders_controls = ft.Column(
         [
@@ -222,13 +243,12 @@ def main(page: ft.Page):
         if (workerTF1.value != "") and (workerTF2.value != ""):
             add_worker(workerTF1.value, workerTF2.value)
             new_workerSQL = SQLDataTable(
-                "sqlite",
-                os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
                 statement=workerQuery,
             )
+            new_workerDataTable = new_workerSQL.datatable
 
         workers_table.controls[0] = add_delete_column(
-            new_workerSQL.datatable, delete_and_refresh_workers
+            new_workerDataTable, delete_and_refresh_workers
         )
         page.update()
         worker_dropdown.options = [
@@ -250,12 +270,11 @@ def main(page: ft.Page):
         def execute_deletion(e):
             delete_worker(worker_name)
             new_workerSQL = SQLDataTable(
-                "sqlite",
-                os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
                 statement=workerQuery,
             )
+            new_workerDataTable = new_workerSQL.datatable
             workers_table.controls[0] = add_delete_column(
-                new_workerSQL.datatable, delete_and_refresh_workers
+                new_workerDataTable, delete_and_refresh_workers
             )
             worker_dropdown.options = [
                 ft.dropdown.Option(name) for name in generate_dropdown_options()
@@ -286,7 +305,7 @@ def main(page: ft.Page):
         page.open(delete_worker_dialog)
 
     workers_table = ft.Column(
-        [add_delete_column(workerSQL.datatable, delete_and_refresh_workers)],
+        [add_delete_column(workerDataTable, delete_and_refresh_workers)],
         tight=True,
         scroll="auto",
         alignment=ft.MainAxisAlignment.CENTER,

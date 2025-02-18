@@ -3,11 +3,13 @@ import os
 import pandas as pd
 from db_updates import *
 import sys
+from pathlib import Path
 
 
 # Initializing the database with 3 tables of things that we need to keep track of
 def init_db(data_folder="Data", overwrite_db=False):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     base_dir = get_directorypath("X:\\CHILD TD RSCH\\PRP")
     data_folder = os.path.join(base_dir, data_folder)
 
@@ -81,6 +83,7 @@ def init_db(data_folder="Data", overwrite_db=False):
                 foldergroup = f"TD-{start}yo"
             else:
                 foldergroup = f"CP-{start[0]}"
+            print("new folder added to database - ", foldername)
             cursor.execute(
                 """
                 INSERT INTO Folders (TotalFiles, FolderName, FolderPath, FolderGroup) VALUES (?, ?, ?, ?)
@@ -114,7 +117,7 @@ def init_db(data_folder="Data", overwrite_db=False):
                             """,
                             (folderID, filename, filepath, filetype),
                         )
-                    # Uncomment to deal with that one weird disaster situation:
+                    ### Uncomment to deal with that one weird disaster situation:
                     # else:
                     #     cursor.execute(
                     #         """
@@ -136,7 +139,29 @@ def init_db(data_folder="Data", overwrite_db=False):
                     #             """,
                     #             (filepath, filename, filetype, folderID),
                     #         )
-    commit_conn(conn, cursor)
+    # ## The thing that deletes files which are not in the filesystem anymore:
+    # def get_subfolder(folder):
+    #     parts = Path(folder).parts
+    #     if "Data" in parts:
+    #         return Path(*parts[parts.index("Data") + 2:3])
+    #     else:
+    #         return None
+    # allowed_pairs = [
+    #     (get_subfolder(os.path.join(root, file)), file) for root, _, filenames in os.walk(data_folder) for file in filenames
+    # ]
+    # placeholders = ", ".join("(?, ?)" * len(allowed_pairs))
+    # query = f"""
+    #             DELETE FROM Files
+    #             WHERE NOT EXISTS (
+    #                 SELECT 1 FROM Folders
+    #                 WHERE Files.FolderID = Folders.FolderID
+    #                 AND (Folders.FolderName, Files.FileName) IN ({placeholders})
+    #             );
+    #             """
+    # params = tuple(item for pair in allowed_pairs for item in pair)
+    # cursor.execute(query, params)
+    # commit_conn(conn, cursor)
+    conn.close()
 
 
 if __name__ == "__main__":

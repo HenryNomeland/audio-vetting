@@ -5,17 +5,29 @@ from sys import platform
 
 def make_conn():
     conn = sqlite3.connect(
-        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db")
+        os.path.join(get_directorypath("X:\\CHILD TD RSCH\\PRP"), "audio.db"),
+        timeout=10,
     )
-    conn.execute("PRAGMA journal_mode=WAL;")
-    return conn, conn.cursor()
+    conn.execute("PRAGMA journal_mode=DELETE;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA locking_mode=NORMAL;")
+    conn.execute("PRAGMA temp_store=MEMORY;")
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+    return conn
 
 
-def commit_conn(conn, cursor):
-    conn.commit()
-    cursor.close()
-    if conn:
-        conn.close()
+def execute_write(cursor, query, params=None):
+    try:
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        cursor.connection.commit()
+        cursor.close()
+        cursor.connection.close()
+    except sqlite3.DatabaseError as e:
+        print(f"Error during write operation: {e}")
+        cursor.connection.rollback()
 
 
 def get_directorypath(directory):
@@ -42,7 +54,8 @@ def get_directorypath(directory):
 
 
 def get_filepath(filename):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     filepath = cursor.execute(
         """
         SELECT FilePath from Files
@@ -50,6 +63,8 @@ def get_filepath(filename):
         """,
         (filename,),
     ).fetchone()[0]
+    cursor.close()
+    conn.close()
     if platform == "linux" or platform == "linux2":
         return filepath
     if os.path.exists("C:" + filepath[2:]):
@@ -79,93 +94,101 @@ def cycle_folders(data_directory):
 
 
 def add_worker(name, type):
-    conn, cursor = make_conn()
-    cursor.execute(
+    conn = make_conn()
+    cursor = conn.cursor()
+    execute_write(
+        cursor,
         """
         INSERT INTO Workers (WorkerName, WorkerType) VALUES (?, ?)
         """,
-        (name, type),
+        params=(name, type),
     )
-    commit_conn(conn, cursor)
 
 
 def assign_files(fileID_list, workerID):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     for fileID in fileID_list:
-        cursor.execute(
+        execute_write(
+            cursor,
             """
             UPDATE Files
             SET WorkerID = ? 
             WHERE FileID = ?
             """,
-            (workerID, fileID),
+            params=(workerID, fileID),
         )
-    commit_conn(conn, cursor)
 
 
 def assign_folders(folderID_list, workerID):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     for folderID in folderID_list:
-        cursor.execute(
+        execute_write(
+            cursor,
             """
             UPDATE Files
             SET WorkerID = ?
             WHERE FolderID = ?
             """,
-            (workerID, folderID),
+            params=(workerID, folderID),
         )
-    commit_conn(conn, cursor)
 
 
 def file_complete(fileID):
-    conn, cursor = make_conn()
-    cursor.execute(
+    conn = make_conn()
+    cursor = conn.cursor()
+    execute_write(
+        cursor,
         """
         UPDATE Files
         SET FileStatus = 'Complete'
         WHERE fileID = ?
         """,
-        (fileID),
+        params=(fileID),
     )
-    commit_conn(conn, cursor)
 
 
 def file_flag(fileID):
-    conn, cursor = make_conn()
-    cursor.execute(
+    conn = make_conn()
+    cursor = conn.cursor()
+    execute_write(
+        cursor,
         """
         UPDATE Files
         SET FileStatus = 'Flagged'
         WHERE fileID = ?
         """,
-        (fileID),
+        params=(fileID),
     )
-    commit_conn(conn, cursor)
 
 
 def clear_assignments(workerID):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
+        cursor,
         """
         UPDATES Files
         SET WorkerID = NULL
         WHERE WorkerID = ?
         """,
-        (workerID,),
+        params=(workerID,),
     )
-    commit_conn(conn, cursor)
 
 
 def update_comments(filename, foldername, filetype, comments):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         f"""
         SELECT FolderID FROM Folders
         WHERE FolderName = '{foldername}'
-        """
+        """,
     )
     folderid = cursor.fetchone()[0]
-    cursor.execute(
+    execute_write(
+        cursor,
         f"""
         UPDATE Files
         SET Comments = '{comments}'
@@ -173,21 +196,23 @@ def update_comments(filename, foldername, filetype, comments):
             FileName = '{filename}' AND
             FileType = '{filetype}' AND
             FolderID = '{folderid}'
-        """
+        """,
     )
-    commit_conn(conn, cursor)
 
 
 def generate_dropdown_options():
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute("SELECT WorkerName FROM Workers")
     worker_list = [row[0] for row in cursor.fetchall()]
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
     return worker_list
 
 
 def generate_visitdropdown_options(worker):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     if worker != "All":
         cursor.execute(
             f"""
@@ -206,12 +231,14 @@ def generate_visitdropdown_options(worker):
             """
         )
     visit_list = [row[0] for row in cursor.fetchall()]
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
     return visit_list
 
 
 def generate_incompletevisitdropdown_options(worker):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     if worker != "All":
         cursor.execute(
             f"""
@@ -233,12 +260,14 @@ def generate_incompletevisitdropdown_options(worker):
             """
         )
     visit_list = [row[0] for row in cursor.fetchall()]
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
     return visit_list
 
 
 def generate_completevisitdropdown_options(worker):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     if worker != "All":
         cursor.execute(
             f"""
@@ -260,26 +289,32 @@ def generate_completevisitdropdown_options(worker):
             """
         )
     visit_list = [row[0] for row in cursor.fetchall()]
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
     return visit_list
 
 
 def generate_foldergroupdropdown_options():
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT FolderGroup FROM Folders")
     group_list = [row[0] for row in cursor.fetchall()]
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
     return group_list
 
 
 def delete_worker(worker_name):
-    conn, cursor = make_conn()
-    cursor.execute("DELETE FROM Workers WHERE WorkerName = ?", (worker_name,))
-    commit_conn(conn, cursor)
+    conn = make_conn()
+    cursor = conn.cursor()
+    execute_write(
+        cursor, "DELETE FROM Workers WHERE WorkerName = ?", params=(worker_name,)
+    )
 
 
 def update_folder_assignments(worker_name, folderlist):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute("SELECT WorkerID FROM Workers WHERE WorkerName = ?", (worker_name,))
     worker_id = cursor.fetchall()[0][0]
     cursor.execute(
@@ -291,19 +326,20 @@ def update_folder_assignments(worker_name, folderlist):
         folderlist,
     )
     folder_ids = [row[0] for row in cursor.fetchall()]
-    cursor.execute(
+    execute_write(
+        cursor,
         f"""
          UPDATE Files
          SET WorkerID = '{worker_id}' 
          WHERE FolderID IN ({','.join(['?'] * len(folder_ids))})
          """,
-        folder_ids,
+        params=folder_ids,
     )
-    commit_conn(conn, cursor)
 
 
 def update_file_assignments(worker_name, filelist):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute("SELECT WorkerID FROM Workers WHERE WorkerName = ?", (worker_name,))
     worker_id = cursor.fetchall()[0][0]
     cursor.execute(
@@ -315,19 +351,20 @@ def update_file_assignments(worker_name, filelist):
         filelist,
     )
     file_ids = [row[0] for row in cursor.fetchall()]
-    cursor.execute(
+    execute_write(
+        cursor,
         f"""
          UPDATE Files
          SET WorkerID = '{worker_id}' 
          WHERE FileID IN ({','.join(['?'] * len(file_ids))})
          """,
-        file_ids,
+        params=file_ids,
     )
-    commit_conn(conn, cursor)
 
 
 def scrub_folder_assignments(folderlist):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         f"""
          SELECT FolderID
@@ -337,7 +374,8 @@ def scrub_folder_assignments(folderlist):
         folderlist,
     )
     folder_ids = [row[0] for row in cursor.fetchall()]
-    cursor.execute(
+    execute_write(
+        cursor,
         f"""
          UPDATE Files
          SET WorkerID = '' 
@@ -345,33 +383,37 @@ def scrub_folder_assignments(folderlist):
          """,
         folder_ids,
     )
-    commit_conn(conn, cursor)
 
 
 def scrub_file_assignments(filelist):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
+        cursor,
         f"""
          SELECT FileID 
          FROM Files 
          WHERE FileName IN ({','.join(['?'] * len(filelist))})
          """,
-        filelist,
+        params=filelist,
     )
     file_ids = [row[0] for row in cursor.fetchall()]
     cursor.execute(
+        cursor,
         f"""
          UPDATE Files
          SET WorkerID = '' 
          WHERE FileID IN ({','.join(['?'] * len(file_ids))})
          """,
-        file_ids,
+        params=file_ids,
     )
-    commit_conn(conn, cursor)
+    cursor.close()
+    conn.close()
 
 
 def get_file_status(filename, foldername, filetype):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         """
         SELECT FileStatus
@@ -382,11 +424,14 @@ def get_file_status(filename, foldername, filetype):
         (filename, foldername, filetype),
     )
     status = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
     return status
 
 
 def refresh_db_status(filename, foldername, filetype, filestatus):
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         f"""
         SELECT FolderID FROM Folders
@@ -394,7 +439,12 @@ def refresh_db_status(filename, foldername, filetype, filestatus):
         """
     )
     folderid = cursor.fetchone()[0]
-    cursor.execute(
+    cursor.close()
+    conn.close()
+    conn = make_conn()
+    cursor = conn.cursor()
+    execute_write(
+        cursor,
         f"""
         UPDATE Files
         SET FileStatus = '{filestatus}'
@@ -402,13 +452,13 @@ def refresh_db_status(filename, foldername, filetype, filestatus):
             FileName = '{filename}' AND
             FileType = '{filetype}' AND
             FolderID = '{folderid}'
-        """
+        """,
     )
-    commit_conn(conn, cursor)
 
 
 def get_default_visit():
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         f"""
         SELECT DISTINCT FolderName 
@@ -416,11 +466,14 @@ def get_default_visit():
         """
     )
     foldername = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
     return foldername
 
 
 def get_default_foldergroup():
-    conn, cursor = make_conn()
+    conn = make_conn()
+    cursor = conn.cursor()
     cursor.execute(
         f"""
         SELECT DISTINCT FolderGroup 
@@ -428,4 +481,6 @@ def get_default_foldergroup():
         """
     )
     foldergroup = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
     return foldergroup
