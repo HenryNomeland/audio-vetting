@@ -1,7 +1,6 @@
 import flet as ft
-import os
 
-utility_text = "Utility Outputs are Displayed Here:"
+utility_text = "Utility Outputs:"
 
 
 def create_utilities_tab(page: ft.Page):
@@ -21,6 +20,12 @@ def create_utilities_tab(page: ft.Page):
     def generateProgressReport(e):
         global utility_text
         utility_text += "\nOther Text."
+        util_tab.controls[1].content.controls[0].value = utility_text
+        page.update()
+
+    def saveOutput(e):
+        global utility_text
+        utility_text += "\nSave."
         util_tab.controls[1].content.controls[0].value = utility_text
         page.update()
 
@@ -67,12 +72,25 @@ def create_utilities_tab(page: ft.Page):
                 ),
                 width=450,
             ),
+            ft.ElevatedButton(
+                content=ft.Container(
+                    ft.Text(value="Save Outputs as a Text File", size=16),
+                    padding=ft.padding.all(20),
+                ),
+                on_click=saveOutput,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=5),
+                    color=ft.colors.INDIGO_900,
+                    bgcolor=ft.colors.INDIGO_50,
+                ),
+                width=450,
+            ),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
-        spacing=50,
+        spacing=29,
     )
 
-    util_text = ft.Text(utility_text, weight=ft.FontWeight.BOLD)
+    util_text = ft.Text(utility_text, weight=ft.FontWeight.BOLD, size=12)
 
     util_controls = ft.Container(
         ft.Column(
@@ -94,10 +112,10 @@ def create_utilities_tab(page: ft.Page):
             spacing=20,
             auto_scroll=True,
         ),
-        padding=ft.Padding(50, 50, 0, 50),
-        bgcolor=ft.colors.BLACK12,
-        width=700,
-        height=400,
+        padding=ft.Padding(20, 20, 20, 20),
+        bgcolor=ft.colors.INDIGO_50,
+        width=450,
+        height=460,
     )
 
     util_tab = ft.Row(
