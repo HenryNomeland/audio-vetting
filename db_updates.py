@@ -51,6 +51,12 @@ def get_directorypath(directory):
         return "\\\\wcs-cifs\\wc\\speech_data" + directory[2:]
     elif os.path.exists("M:\\wc\\speech_data" + directory[2:]):
         return "M:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("\\\\wcs-cifs\\waisman.wisc.edu\\speech_data" + directory[2:]):
+        return "\\\\wcs-cifs\\waisman.wisc.edu\\speech_data" + directory[2:]
+    elif os.path.exists(
+        "\\\\wcs-cifs.waisman.wisc.edu\\wc\\speech_data" + directory[2:]
+    ):
+        return "\\\\wcs-cifs.waisman.wisc.edu\\wc\\speech_data" + directory[2:]
 
 
 def get_filepath(filename):
