@@ -207,7 +207,7 @@ def generate_dropdown_options():
     worker_list = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return worker_list
+    return sorted(worker_list, key=str.lower)
 
 
 def generate_visitdropdown_options(worker):
@@ -233,7 +233,7 @@ def generate_visitdropdown_options(worker):
     visit_list = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return visit_list
+    return sorted(visit_list, key=str.lower)
 
 
 def generate_incompletevisitdropdown_options(worker):
@@ -262,7 +262,7 @@ def generate_incompletevisitdropdown_options(worker):
     visit_list = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return visit_list
+    return sorted(visit_list, key=str.lower)
 
 
 def generate_completevisitdropdown_options(worker):
@@ -291,7 +291,7 @@ def generate_completevisitdropdown_options(worker):
     visit_list = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return visit_list
+    return sorted(visit_list, key=str.lower)
 
 
 def generate_foldergroupdropdown_options():
@@ -301,7 +301,7 @@ def generate_foldergroupdropdown_options():
     group_list = [row[0] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return group_list
+    return sorted(group_list, key=str.lower)
 
 
 def delete_worker(worker_name):

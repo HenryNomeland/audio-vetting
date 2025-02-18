@@ -69,6 +69,7 @@ def init_db(data_folder="Data", overwrite_db=False):
         foldername = foldername[-2] + f"-v{foldername[-1][-2:]}"
         totalfiles = 0
         for path, _, files in os.walk(folderpath):
+            files = [f for f in files if f[-3:] == "wav"]
             totalfiles += len(files)
         # If the folder isn't in the database this inserts the folder into the database
         cursor.execute(
@@ -90,6 +91,23 @@ def init_db(data_folder="Data", overwrite_db=False):
                 """,
                 (totalfiles, foldername, folderpath, foldergroup),
             )
+            cursor.connection.commit()
+        else:
+            cursor.execute(
+                """
+                SELECT exists(SELECT 1 FROM Folders WHERE FolderName = ? AND TotalFiles = ?) AS row_exists;
+                """,
+                (foldername, totalfiles),
+            )
+            if cursor.fetchone()[0] == 0:
+                cursor.execute(
+                    """
+                    UPDATE Folders SET TotalFiles = ? WHERE FolderName = ?;
+                    """,
+                    (totalfiles, foldername),
+                )
+                print("folder updated with new filecount - ", foldername, totalfiles)
+                cursor.connection.commit()
         for path, _, files in os.walk(folderpath):
             for filename in files:
                 filepath = os.path.join(path, filename)
@@ -117,6 +135,7 @@ def init_db(data_folder="Data", overwrite_db=False):
                             """,
                             (folderID, filename, filepath, filetype),
                         )
+                        cursor.connection.commit()
                     ### Uncomment to deal with that one weird disaster situation:
                     # else:
                     #     cursor.execute(
@@ -160,7 +179,6 @@ def init_db(data_folder="Data", overwrite_db=False):
     #             """
     # params = tuple(item for pair in allowed_pairs for item in pair)
     # cursor.execute(query, params)
-    # commit_conn(conn, cursor)
     conn.close()
 
 

@@ -2,6 +2,7 @@ import flet as ft
 from db_updates import *
 from dt_updates import *
 from vetting_tab import *
+from utilities_tab import *
 import pandas as pd
 from typing import List
 
@@ -103,6 +104,7 @@ def main(page: ft.Page):
         page.update()
 
     vetting_tab, worker_dropdown_vetting = create_vetting_tab(page)
+    utilities_tab = create_utilities_tab(page)
     worker_dropdown = create_worker_dropdown()
 
     def fileButtonClick(e):
@@ -359,6 +361,12 @@ def main(page: ft.Page):
                 text="All Workers",
                 content=ft.Container(
                     content=workers_tab, alignment=ft.alignment.center, padding=20
+                ),
+            ),
+            ft.Tab(
+                text="Utilities",
+                content=ft.Container(
+                    content=utilities_tab, alignment=ft.alignment.center, padding=20
                 ),
             ),
         ],

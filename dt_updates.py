@@ -3,8 +3,6 @@ from db_updates import *
 import subprocess
 from sys import platform
 
-print(platform)
-
 
 def create_worker_dropdown():
     worker_names = generate_dropdown_options()
