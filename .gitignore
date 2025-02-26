@@ -9,3 +9,5 @@ config.txt
 *.ico
 *.spec
 /dist/
+/build/
+child_dict.csv

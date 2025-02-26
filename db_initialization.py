@@ -3,11 +3,13 @@ import os
 import pandas as pd
 from db_updates import *
 import sys
+import flet as ft
 from pathlib import Path
+import utilities_tab
 
 
 # Initializing the database with 3 tables of things that we need to keep track of
-def init_db(data_folder="Data", overwrite_db=False):
+def init_db(page, update_output, util_tab, data_folder="Data", overwrite_db=False):
     conn = make_conn()
     cursor = conn.cursor()
     base_dir = get_directorypath("X:\\CHILD TD RSCH\\PRP")
@@ -15,8 +17,8 @@ def init_db(data_folder="Data", overwrite_db=False):
 
     # Creating the Files table which includes every file, their assignments, and their status
     tablename = "Files"
-    if overwrite_db:
-        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
+    # if overwrite_db:
+    #     cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(
         f"""
          CREATE TABLE IF NOT EXISTS {tablename} (
@@ -36,8 +38,8 @@ def init_db(data_folder="Data", overwrite_db=False):
 
     # Creating the Worker table which includes every worker that is assigned to files
     tablename = "Workers"
-    if overwrite_db:
-        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
+    # if overwrite_db:
+    #     cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(
         f"""
          CREATE TABLE IF NOT EXISTS {tablename} (
@@ -50,8 +52,8 @@ def init_db(data_folder="Data", overwrite_db=False):
 
     # Creating the Folders table which includes every folder representing a child in the dataset
     tablename = "Folders"
-    if overwrite_db:
-        cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
+    # if overwrite_db:
+    #     cursor.execute(f"DROP TABLE IF EXISTS {tablename}")
     cursor.execute(
         f"""
          CREATE TABLE IF NOT EXISTS {tablename} (
@@ -84,13 +86,13 @@ def init_db(data_folder="Data", overwrite_db=False):
                 foldergroup = f"TD-{start}yo"
             else:
                 foldergroup = f"CP-{start[0]}"
-            print("new folder added to database - ", foldername)
             cursor.execute(
                 """
                 INSERT INTO Folders (TotalFiles, FolderName, FolderPath, FolderGroup) VALUES (?, ?, ?, ?)
                 """,
                 (totalfiles, foldername, folderpath, foldergroup),
             )
+            update_output(f"\nNew folder - {foldername}")
             cursor.connection.commit()
         else:
             cursor.execute(
@@ -106,7 +108,9 @@ def init_db(data_folder="Data", overwrite_db=False):
                     """,
                     (totalfiles, foldername),
                 )
-                print("folder updated with new filecount - ", foldername, totalfiles)
+                update_output(
+                    f"\nFolder updated with new filecount - {foldername}, {totalfiles}"
+                )
                 cursor.connection.commit()
         for path, _, files in os.walk(folderpath):
             for filename in files:
@@ -128,13 +132,13 @@ def init_db(data_folder="Data", overwrite_db=False):
                         (filename, filetype, folderID),
                     )
                     if cursor.fetchone()[0] == 0:
-                        print("New file being added to the database: ", filename)
                         cursor.execute(
                             """
                             INSERT INTO Files (FolderID, FileName, FilePath, FileType) VALUES (?, ?, ?, ?)
                             """,
                             (folderID, filename, filepath, filetype),
                         )
+                        update_output(f"\nNew file - {filename}")
                         cursor.connection.commit()
                     ### Uncomment to deal with that one weird disaster situation:
                     # else:
