@@ -47,10 +47,22 @@ def get_directorypath(directory):
         return "W:" + directory[2:]
     elif os.path.exists("Z:" + directory[2:]):
         return "Z:" + directory[2:]
-    elif os.path.exists("\\\\wcs-cifs\\wc\\speech_data" + directory[2:]):
-        return "\\\\wcs-cifs\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("M:" + directory[2:]):
+        return "M:" + directory[2:]
+    elif os.path.exists("C:\\wc\\speech_data" + directory[2:]):
+        return "C:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("X:\\wc\\speech_data" + directory[2:]):
+        return "X:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("Y:\\wc\\speech_data" + directory[2:]):
+        return "Y:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("W:\\wc\\speech_data" + directory[2:]):
+        return "W:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("Z:\\wc\\speech_data" + directory[2:]):
+        return "Z:\\wc\\speech_data" + directory[2:]
     elif os.path.exists("M:\\wc\\speech_data" + directory[2:]):
         return "M:\\wc\\speech_data" + directory[2:]
+    elif os.path.exists("\\\\wcs-cifs\\wc\\speech_data" + directory[2:]):
+        return "\\\\wcs-cifs\\wc\\speech_data" + directory[2:]
     elif os.path.exists("\\\\wcs-cifs\\waisman.wisc.edu\\speech_data" + directory[2:]):
         return "\\\\wcs-cifs\\waisman.wisc.edu\\speech_data" + directory[2:]
     elif os.path.exists(
@@ -71,22 +83,45 @@ def get_filepath(filename):
     ).fetchone()[0]
     cursor.close()
     conn.close()
+    if "wc" in filepath:
+        filepath = filepath[2:]
+        filepath_main = os.path.join(*filepath.split(os.sep)[3:])
+    else:
+        filepath_main = os.path.join(*filepath.split(os.sep)[1:])
     if platform == "linux" or platform == "linux2":
         return filepath
-    if os.path.exists("C:" + filepath[2:]):
-        return "C:" + filepath[2:]
-    elif os.path.exists("X:" + filepath[2:]):
-        return "X:" + filepath[2:]
-    elif os.path.exists("Y:" + filepath[2:]):
-        return "Y:" + filepath[2:]
-    elif os.path.exists("W:" + filepath[2:]):
-        return "W:" + filepath[2:]
-    elif os.path.exists("Z:" + filepath[2:]):
-        return "Z:" + filepath[2:]
-    elif os.path.exists(os.path.join("wcs-cifs", "wc", "speech_data", filepath[2:])):
-        return os.path.join("wcs-cifs", "wc", "speech_data", filepath[2:])
-    elif os.path.exists(os.path.join("M:", "wc", "speech_data", filepath[2:])):
-        return os.path.join("M:", "wc", "speech_data", filepath[2:])
+    if os.path.exists(os.path.join("C:", filepath_main)):
+        return os.path.join("C:", filepath_main)
+    elif os.path.exists(os.path.join("X:", filepath_main)):
+        return os.path.join("X:", filepath_main)
+    elif os.path.exists(os.path.join("Y:", filepath_main)):
+        return os.path.join("Y:", filepath_main)
+    elif os.path.exists(os.path.join("W:", filepath_main)):
+        return os.path.join("W:", filepath_main)
+    elif os.path.exists(os.path.join("Z:", filepath_main)):
+        return os.path.join("Z:", filepath_main)
+    elif os.path.exists(os.path.join("M:", filepath_main)):
+        return os.path.join("M:", filepath_main)
+    elif os.path.exists(os.path.join("C:", "wc", "speech_data", filepath_main)):
+        return os.path.join("C:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("X:", "wc", "speech_data", filepath_main)):
+        return os.path.join("X:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("Y:", "wc", "speech_data", filepath_main)):
+        return os.path.join("Y:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("W:", "wc", "speech_data", filepath_main)):
+        return os.path.join("W:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("Z:", "wc", "speech_data", filepath_main)):
+        return os.path.join("Z:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("M:", "wc", "speech_data", filepath_main)):
+        return os.path.join("M:", "wc", "speech_data", filepath_main)
+    elif os.path.exists(os.path.join("wcs-cifs", "wc", "speech_data", filepath_main)):
+        return os.path.join("wcs-cifs", "wc", "speech_data", filepath_main)
+    elif os.path.exists("\\\\" + os.path.join("wcs-cifs", "waisman.wisc.edu", "speech_data", filepath_main)):
+        return "\\\\" + os.path.join("wcs-cifs", "waisman.wisc.edu", "speech_data") + filepath_main
+    elif os.path.exists(
+        "\\\\" + os.path.join("wcs-cifs.waisman.wisc.edu", "wc", "speech_data", filepath_main)
+    ):
+        return "\\\\" + os.path.join("wcs-cifs.waisman.wisc.edu", "wc", "speech_data", filepath_main)
 
 
 def cycle_folders(data_directory):

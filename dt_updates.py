@@ -148,7 +148,10 @@ def audition_start():
 
 
 def audioedit_function(file_name):
+    print("OUTPUT:")
+    print(file_name)
     filepath = get_filepath(file_name)
+    print(filepath)
     # the following is just trying to find the path to audition and if it can't find it it tries to find the path to audacity
     if platform == "Windows" or platform == "win32":
         try:

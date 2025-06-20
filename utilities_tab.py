@@ -8,6 +8,7 @@ import csv
 from db_initialization import init_db
 import pandas as pd
 from add_silence import add_silence
+import filecmp
 
 utility_text = "Utility Outputs:"
 
@@ -137,7 +138,7 @@ def create_utilities_tab(page: ft.Page):
             child_dict = {}
             with open(
                 os.path.join(
-                    get_directorypath("Y:\\CHILD TD RSCH\PRP"), "child_dict.csv"
+                    get_directorypath(r"Y:\CHILD TD RSCH\PRP"), "child_dict.csv"
                 ),
                 encoding="utf-8",
             ) as file:
@@ -597,22 +598,25 @@ It is recommended to run this process only when you are sure others are not work
                 """,
                 conn,
             )
-            vetted_path = get_directorypath("Y:\\CHILD TD RSCH\PRP\Vetted Data")
+            vetted_path = get_directorypath("Y:\\CHILD TD RSCH\\PRP\\Vetted Data")
+            
+            child_dict = {}
+            with open(
+                os.path.join(
+                    get_directorypath("Y:\\CHILD TD RSCH\\PRP"), "child_dict.csv"
+                ),
+                encoding="utf-8",
+            ) as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row:
+                        while row and row[-1] == "":
+                            row.pop()
+                        key = row[0]
+                        value = row[-1]
+                        child_dict[key] = value.strip()
 
-            def convert_to_abbrev(oldpath, pathlist):
-                child_dict = {}
-                with open(
-                    os.path.join(
-                        get_directorypath("Y:\\CHILD TD RSCH\PRP"), "child_dict.csv"
-                    ),
-                    encoding="utf-8",
-                ) as file:
-                    reader = csv.reader(file)
-                    for row in reader:
-                        if row:
-                            key = row[0]
-                            value = row[-1]
-                            child_dict[key] = value
+            def convert_to_abbrev(pathlist):
                 if pathlist[-5] == "TD":
                     return os.path.join(
                         vetted_path,
@@ -630,19 +634,32 @@ It is recommended to run this process only when you are sure others are not work
                         pathlist[-2],
                     )
 
-            for path in df["FilePath"].tolist():
+            total = len(df["FilePath"].tolist())
+            count = 0
+            for path in reversed(df["FilePath"].tolist()):
                 pathlist = path.split(os.sep)
-                newdir = convert_to_abbrev(path, pathlist)
+                newdir = convert_to_abbrev(pathlist)
                 if newdir == None:
                     continue
                 if not os.path.exists(newdir):
+                    base = os.path.basename(newdir)
+                    if (base not in ["Long STOCS", "Short STOCS", "SSS"]):
+                        if "Visit" in base:
+                            update_output(f"\nCopying new directory - {newdir.split(os.sep)[-2]} - {base}")
+                        else:
+                            update_output(f"\nCopying new directory - {base}")
                     os.makedirs(newdir)
-                shutil.copy(
-                    os.path.join(
-                        get_directorypath(os.path.dirname(path)), os.path.basename(path)
-                    ),
-                    os.path.join(newdir, pathlist[-1]),
-                )
+                try:
+                    src = os.path.join(get_directorypath(os.path.dirname(path)), os.path.basename(path))
+                    dst = os.path.join(newdir, pathlist[-1])
+                    if not os.path.exists(dst):
+                        shutil.copy(src, dst)
+                    elif not filecmp.cmp(src, dst, shallow=False):
+                        shutil.copy(src, dst)
+                except TypeError:
+                    update_output(f"\nWARNING - issue with file (not copied) - {os.path.basename(path)}")
+                count += 1
+                update_output(f"\n{round((count/total)*100, 2)}% {count}/{total} {os.path.basename(path)}")
             ### Delete flagged files from the Vetted Data directory
             update_output("\nRemoving flagged files from the vetted data directory...")
             df = pd.read_sql_query(
@@ -722,9 +739,9 @@ It is recommended to run this process only when you are sure others are not work
             title=ft.Text("Vetted Data Folder Update Confirmation"),
             content=ft.Text(
                 "Running the following process may take a long amount of time. It will clear any existing outputs in the right output panel and may disrupt other workers. \n\
-The process will copy any newly vetted files from the Data folder (where all AVA files reside) to the Vetted Data folder (where only completed files reside). \n\
-The backup of the AVA database (located in the utils folder) will also be updated. \n\
-It is recommended to run this process only when you are sure others are not working with AVA."
+                The process will copy any newly vetted files from the Data folder (where all AVA files reside) to the Vetted Data folder (where only completed files reside). \n\
+                The backup of the AVA database (located in the utils folder) will also be updated. \n\
+                It is recommended to run this process only when you are sure others are not working with AVA."
             ),
             actions=[
                 ft.TextButton("Continue", on_click=handle_vettedclick),
@@ -741,10 +758,61 @@ It is recommended to run this process only when you are sure others are not work
             page.close(progressClickDialog)
 
         def handle_progressclick(e):
-            update_output(
-                "\nThere is no report generation function right now.", replace=True
-            )
+            conn = make_conn()
+            update_output("\nPROGRESS REPORT:", replace=True)
+            update_output("\nProcessing Report...")
             page.close(progressClickDialog)
+            df = pd.read_sql_query(
+                """
+                SELECT * FROM Folders
+                """,
+                conn,
+            )
+            worker_df = pd.read_sql_query(
+                """
+                SELECT * FROM Files
+                LEFT JOIN Workers
+                ON Files.WorkerID = Workers.WorkerID
+                WHERE Files.WorkerID IS NOT NULL
+                """,
+                conn,
+            )
+            file_df = pd.read_sql_query(
+                """
+                SELECT * FROM Files
+                LEFT JOIN Folders
+                ON Files.FolderID = Folders.FolderID
+                WHERE TotalFiles = 14 OR TotalFiles = 15
+                """,
+                conn,
+            )
+            total_visits = len(df)
+            visits0 = len(df[df["TotalFiles"] == 0])
+            visits3 = len(df[df["TotalFiles"] == 3])
+            visits12 = len(df[df["TotalFiles"] == 12])
+            visits14 = len(df[df["TotalFiles"] == 14])
+            visits15 = len(df[df["TotalFiles"] == 15])
+            other = len(df[~df["TotalFiles"].isin([0, 3, 12, 14, 15])])
+            update_output(f"\n\nVisit Report:")
+            update_output(f"\nTotal number of visits - {total_visits}")
+            update_output(f"\nVisits with 00 Files - {visits0} ({round((visits0/total_visits)*100, 2)}%)")
+            update_output(f"\nVisits with 03 Files - {visits3} ({round((visits3/total_visits)*100, 2)}%)")
+            update_output(f"\nVisits with 12 Files - {visits12} ({round((visits12/total_visits)*100, 2)}%)")
+            update_output(f"\nVisits with 14 Files - {visits14} ({round((visits14/total_visits)*100, 2)}%)")
+            update_output(f"\nVisits with 15 Files - {visits15} ({round((visits15/total_visits)*100, 2)}%)")
+            update_output(f"\nVisits with Other Numbers of Files - {other} ({round((other/total_visits)*100, 2)}%)")
+            update_output(f"\n\nWorker Report:")
+            for worker in worker_df["WorkerName"].unique():
+                workerlen = len(worker_df[worker_df["WorkerName"] == worker])
+                completedlen = len(worker_df[(worker_df["WorkerName"] == worker) & (worker_df["FileStatus"] != "Incomplete")])
+                if workerlen != 0:
+                    update_output(f"\n{worker} - {completedlen}/{workerlen} files completed ({round((completedlen/workerlen)*100, 2)}%)")
+            update_output(f"\n\nFile Report:")
+            totalfiles = visits14*14 + visits15*15  
+            update_output(f"\nTotal number of files (in visits with 14 or 15) - {totalfiles}")
+            completedfiles = len(file_df[(file_df["TotalFiles"].isin([14, 15])) & (worker_df["FileStatus"] != "Incomplete")])
+            update_output(f"\nTotal number of files completed - {completedfiles}/{totalfiles} ({round((completedfiles/totalfiles)*100, 2)}%)")
+            update_output("\n")
             backup_database()
             page.open(
                 ft.AlertDialog(
@@ -758,11 +826,10 @@ It is recommended to run this process only when you are sure others are not work
             modal=True,
             title=ft.Text("Progress Report Generation Confirmation"),
             content=ft.Text(
-                #                 "Running the following process may take a long amount of time. It will clear any existing outputs in the right output panel and may disrupt other workers. \n\
-                # The process will generate a report of AVA progress both in terms of which visits have which files and how many of the available files have been vetted. \n\
-                # The backup of the AVA database (located in the utils folder) will also be updated. \n\
-                # It is recommended to run this process only when you are sure others are not working with AVA."
-                "There is no report generation right now. All this button does right now is save a backup of the database and clear the utilities output."
+                "Running the following process may take a long amount of time. It will clear any existing outputs in the right output panel and may disrupt other workers. \n\
+The process will generate a report of AVA progress both in terms of which visits have which files and how many of the available files have been vetted. \n\
+The backup of the AVA database (located in the utils folder) will also be updated. \n\
+It is recommended to run this process only when you are sure others are not working with AVA."
             ),
             actions=[
                 ft.TextButton("Continue", on_click=handle_progressclick),
